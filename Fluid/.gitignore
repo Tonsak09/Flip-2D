@@ -1,0 +1,29 @@
+# Ignore everything
+*
+
+
+# But not these files...
+!.gitignore
+!Entity.cpp
+!Entity.h
+!Fluid.sln
+!IndexBuffer.cpp
+!IndexBuffer.h
+!Main.cpp
+!Renderer.cpp
+!Renderer.h
+!Shader.cpp
+!Shader.h
+!stb_image.cpp
+!stb_image.h
+!Texture.cpp
+!Texture.h
+!VertexArray.cpp
+!VertexArray.h
+!VertexBuffer.cpp
+!VertexBuffer.h
+!VertexBufferLayout.h
+
+# ...even if they are in subdirectories
+!*/
+
