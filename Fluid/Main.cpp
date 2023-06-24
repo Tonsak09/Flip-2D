@@ -180,10 +180,6 @@ int main(void)
         ImGui_ImplGlfwGL3_Init(window, true);
         ImGui::StyleColorsDark();
 
-        // Runtime variables
-        glm::vec3 translationA(200, 200, 0);
-        glm::vec3 translationB(400, 200, 0);
-
         std::vector<glm::vec3> translations = std::vector<glm::vec3>(entities.size());
         #pragma endregion
 
@@ -196,27 +192,24 @@ int main(void)
             #pragma region EntityLogic
             for (unsigned int i = 0; i < entities.size(); i++)
             {
-                {   // One Operation to draw 
+                //glm::mat4 model = glm::translate(glm::mat4(1.0f), translations[i]);
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), startPositions[i] + glm::vec3(noiseData[(int)noiseCoords[i].x], noiseData[(int)noiseCoords[i].y], 0));
+                glm::mat4 mvp = proj * view * model;
+                shader.Bind();
                     
-                    //glm::mat4 model = glm::translate(glm::mat4(1.0f), translations[i]);
-                    glm::mat4 model = glm::translate(glm::mat4(1.0f), startPositions[i] + glm::vec3(noiseData[(int)noiseCoords[i].x], noiseData[(int)noiseCoords[i].y], 0));
-                    glm::mat4 mvp = proj * view * model;
-                    shader.Bind();
-                    
-                    shader.SetUniformMat4f("u_MVP", mvp);
-                    renderer.Draw(va, ib, shader);
+                shader.SetUniformMat4f("u_MVP", mvp);
+                renderer.Draw(va, ib, shader);
 
-                    noiseCoords[i] += glm::vec2(1);
+                noiseCoords[i] += glm::vec2(1);
 
-                    if (noiseCoords[i].x >= noiseData.size())
-                    {
-                        noiseCoords[i].x = 0;
-                    }
+                if (noiseCoords[i].x >= noiseData.size())
+                {
+                    noiseCoords[i].x = 0;
+                }
 
-                    if (noiseCoords[i].y >= noiseData.size())
-                    {
-                        noiseCoords[i].y = 0;
-                    }
+                if (noiseCoords[i].y >= noiseData.size())
+                {
+                    noiseCoords[i].y = 0;
                 }
             }
 

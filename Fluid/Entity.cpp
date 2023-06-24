@@ -11,7 +11,7 @@ Entity::Entity(glm::vec3 _position, float _size)
     :halfSize(_size / 2)
 {
 
-    // This is used for positions and uv
+    // This is used for positions of corners and uv
     float posTemp[] =
     {
             -halfSize, -halfSize, 0.0f, 0.0f,   // 0
@@ -42,6 +42,15 @@ Entity::~Entity()
 void Entity::Move(glm::vec3 translation)
 {
     modelMatrix = glm::translate(modelMatrix, translation);
+}
+
+/// <summary>
+/// Set the position of this entity to the desired vec3
+/// </summary>
+/// <param name="pos"></param>
+void Entity::SetPos(glm::vec3 pos)
+{
+    modelMatrix = glm::translate(glm::mat4(1.0f), pos);
 }
 
 /// <summary>

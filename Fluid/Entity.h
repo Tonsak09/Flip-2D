@@ -15,6 +15,7 @@ public:
 
 	// Positional functions
 	void Move(glm::vec3 translation);
+	void SetPos(glm::vec3 pos);
 	glm::mat4 GetModelMatrix();
 
 	float positions[4 * 4];
