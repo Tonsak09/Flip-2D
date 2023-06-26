@@ -27,6 +27,8 @@
 #include <Windows.h>
 #include <string.h>
 
+#include "Fluid.h"
+
 const float GetRand()
 {
     return ((double)rand() / (RAND_MAX));
@@ -37,10 +39,11 @@ int main(void)
     // Variables 
     const int WIDTH = 960;
     const int HEIGHT = 540;
+    const int PARTICLECOUNT = 20;
 
     float noiseRadius = 100.0f;
     std::vector<glm::vec2> noiseCoords;
-    std::vector<glm::vec3> startPositions;
+    //std::vector<glm::vec3> startPositions;
 
     #pragma region glfwWindow
     GLFWwindow* window;
@@ -70,48 +73,53 @@ int main(void)
     #pragma endregion
 
     #pragma region Rendering&Entity
+    
+    Fluid fluid(9.81f, 10.0f, 10, PARTICLECOUNT, 10.0f);
+    Entity entity(glm::vec3(0), 100.0f); // Used for indicy mat TEMP
 
     // Create entities 
-    std::vector<Entity> entities;
-    for (unsigned int i = 0; i < 10; i++)
+    //std::vector<Entity> entities;
+    for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
-        Entity entity = Entity(glm::vec3(0), 100.0f);
-        entities.push_back(entity);
+        //Entity entity = Entity(glm::vec3(0), 100.0f);
+        //entities.push_back(entity);
 
-        startPositions.push_back(glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0));
-        std::cout << "POS (" << startPositions[i].x << ", " << startPositions[i].y << ")" << std::endl;
+        //startPositions.push_back(glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0));
+        //std::cout << "POS (" << startPositions[i].x << ", " << startPositions[i].y << ")" << std::endl;
+
+        fluid.positions[i] = glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0);
 
         noiseCoords.push_back(glm::vec2(GetRand() * 200, GetRand() * 200));
     }
 
     // Counts so easier to call 
-    int indiciesCount = 6 * entities.size();    // One Entity has 6 indicies 
-    int positionCount = 16 * entities.size();   // One Entity has 16 positions (Includes corners and UV)
+    int indiciesCount = 6 * PARTICLECOUNT;    // One Entity has 6 indicies 
+    int positionCount = 16 * PARTICLECOUNT;   // One Entity has 16 positions (Includes corners and UV)
 
     // Vectors that contain the positions and indicies of all entities 
-    std::vector<float> positions = std::vector <float>();
+    std::vector<float> flattenedPositions = std::vector <float>();
     std::vector<unsigned int> indicies = std::vector <unsigned int>();
     
 
     // Go through the vector and combine all the positions
     // and indicies 
-    for (unsigned int i = 0; i < entities.size(); i++)
+    for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
         // Apply individual entity positions to main vector 
         for (unsigned int p = 0; p < positionCount; p++)
         {
-            positions.push_back(entities[i].positions[p]);
+            flattenedPositions.push_back(fluid.GetEntity(i).positions[p]);
         }
 
         // Apply individual entity indicies to main vector 
         for (unsigned int j = 0; j < indiciesCount; j++)
         {
-            indicies.push_back(entities[i].INDICIES[j] + (i * 4));
+            indicies.push_back(fluid.GetEntity(i).INDICIES[j] + (i * 4));
         }
     }
 
     // Get the beginning of each main vector 
-    float* posPointer = &positions[0];
+    float* posPointer = &flattenedPositions[0];
     unsigned int* indexPointer = &indicies[0];
 
     //std::vector<float> noise = GenerateNoiseDate();
@@ -180,7 +188,7 @@ int main(void)
         ImGui_ImplGlfwGL3_Init(window, true);
         ImGui::StyleColorsDark();
 
-        std::vector<glm::vec3> translations = std::vector<glm::vec3>(entities.size());
+        std::vector<glm::vec3> translations = std::vector<glm::vec3>(PARTICLECOUNT);
         #pragma endregion
 
         /* Loop until the user closes the window */
@@ -190,10 +198,10 @@ int main(void)
             renderer.Clear();
 
             #pragma region EntityLogic
-            for (unsigned int i = 0; i < entities.size(); i++)
+            for (unsigned int i = 0; i < PARTICLECOUNT; i++)
             {
                 //glm::mat4 model = glm::translate(glm::mat4(1.0f), translations[i]);
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), startPositions[i] + glm::vec3(noiseData[(int)noiseCoords[i].x], noiseData[(int)noiseCoords[i].y], 0));
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), *fluid.GetParticle(i).pos + glm::vec3(noiseData[(int)noiseCoords[i].x], noiseData[(int)noiseCoords[i].y], 0));
                 glm::mat4 mvp = proj * view * model;
                 shader.Bind();
                     
