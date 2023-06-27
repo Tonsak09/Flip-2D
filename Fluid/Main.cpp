@@ -28,10 +28,54 @@
 #include <string.h>
 
 #include "Fluid.h"
+#include "Main.h"
 
 const float GetRand()
 {
     return ((double)rand() / (RAND_MAX));
+}
+
+/// <summary>
+/// Renderers each particle
+/// </summary>
+void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, Fluid& fluid, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
+{
+    for (unsigned int i = 0; i < PARTICLECOUNT; i++)
+    {
+        glm::mat4 mvp = proj * view * fluid.GetModel(i);
+        shader.Bind();
+
+        shader.SetUniformMat4f("u_MVP", mvp);
+        renderer.Draw(va, ib, shader);
+    }
+}
+
+/// <summary>
+/// Renders the grid the particles are organized on 
+/// </summary>
+void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
+{
+    float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
+    for (unsigned int x = 0; x < GRIDSIZECOUNT; x++)
+    {
+        for (unsigned int y = 0; y < GRIDSIZECOUNT; y++)
+        {
+            // Get the center of a cell by taking into account
+            // size and borders 
+            glm::vec3 center = glm::vec3
+            (
+                x * trueCellSize + (trueCellSize / 2.0f),
+                y * trueCellSize + (trueCellSize / 2.0f),
+                0.0f
+            );
+
+            glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), center);
+            shader.Bind();
+
+            shader.SetUniformMat4f("u_MVP", mvp);
+            renderer.Draw(va, ib, shader);
+        }
+    }
 }
 
 int main(void)
@@ -42,6 +86,10 @@ int main(void)
 
     const int PARTICLECOUNT = 20;
     const float PARTICLESIZE = 100.0f;
+
+    const int GRIDSIZECOUNT = 10;
+    const float CELLSIZE = 100.0f;
+    const float CELLSPACINGSIZE = 5.0f;
 
     // Counts so easier to call 
     int indiciesCount = 6 * PARTICLECOUNT;    // One Entity has 6 indicies 
@@ -76,7 +124,7 @@ int main(void)
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(9.81f, 10.0f, 10, PARTICLECOUNT, PARTICLESIZE);
+    Fluid fluid(9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, PARTICLESIZE);
     Entity entity(glm::vec3(0), 100.0f); // Used for indicy mat TEMP
 
     // Set starting positions 
@@ -174,20 +222,11 @@ int main(void)
             /* Render here */
             renderer.Clear();
 
-            #pragma region ParticleLogic
-            for (unsigned int i = 0; i < PARTICLECOUNT; i++)
-            {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(100.0f, 100.0f, 0.0f));
+            // Rendering the grid 
+            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, proj, view, shader, renderer, va, ib);
 
-                glm::mat4 mvp = proj * view * fluid.GetModel(i);
-                shader.Bind();
-                    
-                shader.SetUniformMat4f("u_MVP", mvp);
-                renderer.Draw(va, ib, shader);
-            }
-
-            #pragma endregion
+            // Rendering the particle 
+            RenderParticles(PARTICLECOUNT, proj, view, fluid, shader, renderer, va, ib);
             
             #pragma region GUI
             // gui
@@ -231,4 +270,6 @@ int main(void)
 
     return 0;
 }
+
+
 
