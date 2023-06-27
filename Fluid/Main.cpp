@@ -39,11 +39,13 @@ int main(void)
     // Variables 
     const int WIDTH = 960;
     const int HEIGHT = 540;
-    const int PARTICLECOUNT = 20;
 
-    float noiseRadius = 100.0f;
-    std::vector<glm::vec2> noiseCoords;
-    //std::vector<glm::vec3> startPositions;
+    const int PARTICLECOUNT = 20;
+    const float PARTICLESIZE = 100.0f;
+
+    // Counts so easier to call 
+    int indiciesCount = 6 * PARTICLECOUNT;    // One Entity has 6 indicies 
+    int positionCount = 16 * PARTICLECOUNT;   // One Entity has 16 positions (Includes corners and UV)
 
     #pragma region glfwWindow
     GLFWwindow* window;
@@ -74,27 +76,19 @@ int main(void)
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(9.81f, 10.0f, 10, PARTICLECOUNT, 10.0f);
+    Fluid fluid(9.81f, 10.0f, 10, PARTICLECOUNT, PARTICLESIZE);
     Entity entity(glm::vec3(0), 100.0f); // Used for indicy mat TEMP
 
-    // Create entities 
-    //std::vector<Entity> entities;
+    // Set starting positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
-        //Entity entity = Entity(glm::vec3(0), 100.0f);
-        //entities.push_back(entity);
-
-        //startPositions.push_back(glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0));
-        //std::cout << "POS (" << startPositions[i].x << ", " << startPositions[i].y << ")" << std::endl;
-
-        fluid.positions[i] = glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0);
-
-        noiseCoords.push_back(glm::vec2(GetRand() * 200, GetRand() * 200));
+        glm::vec3 rand = glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0);
+        fluid.SetParticlePosition(i, rand);
+        std::cout << (*fluid.GetParticle(i).pos).x << ", ";
+        std::cout << (*fluid.GetParticle(i).pos).y << ", ";
+        std::cout << (*fluid.GetParticle(i).pos).z << std::endl;
     }
 
-    // Counts so easier to call 
-    int indiciesCount = 6 * PARTICLECOUNT;    // One Entity has 6 indicies 
-    int positionCount = 16 * PARTICLECOUNT;   // One Entity has 16 positions (Includes corners and UV)
 
     // Vectors that contain the positions and indicies of all entities 
     std::vector<float> flattenedPositions = std::vector <float>();
@@ -122,24 +116,6 @@ int main(void)
     float* posPointer = &flattenedPositions[0];
     unsigned int* indexPointer = &indicies[0];
 
-    //std::vector<float> noise = GenerateNoiseDate();
-
-    // Create and configure FastNoise object
-    FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-
-    // Gather noise data
-    std::vector<float> noiseData(500 * 500);
-    int index = 0;
-
-    for (int y = 0; y < 500; y++)
-    {
-        for (int x = 0; x < 500; x++)
-        {
-            float currentNoise = noise.GetNoise((float)x, (float)y) * noiseRadius;
-            noiseData[index++] = currentNoise;
-        }
-    }
 
     // Blending 
     GLCall(glEnable(GL_BLEND));
@@ -188,6 +164,7 @@ int main(void)
         ImGui_ImplGlfwGL3_Init(window, true);
         ImGui::StyleColorsDark();
 
+        // Used for manual control of each particle 
         std::vector<glm::vec3> translations = std::vector<glm::vec3>(PARTICLECOUNT);
         #pragma endregion
 
@@ -197,28 +174,17 @@ int main(void)
             /* Render here */
             renderer.Clear();
 
-            #pragma region EntityLogic
+            #pragma region ParticleLogic
             for (unsigned int i = 0; i < PARTICLECOUNT; i++)
             {
-                //glm::mat4 model = glm::translate(glm::mat4(1.0f), translations[i]);
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), *fluid.GetParticle(i).pos + glm::vec3(noiseData[(int)noiseCoords[i].x], noiseData[(int)noiseCoords[i].y], 0));
-                glm::mat4 mvp = proj * view * model;
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(100.0f, 100.0f, 0.0f));
+
+                glm::mat4 mvp = proj * view * fluid.GetModel(i);
                 shader.Bind();
                     
                 shader.SetUniformMat4f("u_MVP", mvp);
                 renderer.Draw(va, ib, shader);
-
-                noiseCoords[i] += glm::vec2(1);
-
-                if (noiseCoords[i].x >= noiseData.size())
-                {
-                    noiseCoords[i].x = 0;
-                }
-
-                if (noiseCoords[i].y >= noiseData.size())
-                {
-                    noiseCoords[i].y = 0;
-                }
             }
 
             #pragma endregion
@@ -238,7 +204,7 @@ int main(void)
                     std::string index = std::to_string(i);
                     std::string combine = title + index;
 
-                    ImGui::SliderFloat3(combine.c_str(), & translations[i].x, 0.0f, 960.0f);
+                    ImGui::SliderFloat3(combine.c_str(), &translations[i].x, 0.0f, 960.0f);
                 }
 
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);

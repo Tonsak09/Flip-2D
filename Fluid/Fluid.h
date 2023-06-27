@@ -1,5 +1,7 @@
 #pragma once
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 #include "Entity.h"
 #include "Renderer.h"
 
@@ -17,11 +19,9 @@ public:
 
 	// The matrix represents the actual verticie positions 
 	float positions[4 * 4];
-	glm::mat4 modelMatrix;
-
 
 	Particle()
-		:index(-1), pos(NULL), vel(glm::vec3(0)), halfSize(-1.0f) 
+		:index(-1), pos(NULL), vel(glm::vec3(0)), halfSize(-1.0f)
 	{
 		// This is used for positions of corners and uv
 		float posTemp[] =
@@ -32,7 +32,6 @@ public:
 				-halfSize,  halfSize, 0.0f, 1.0f    // 3
 		};
 
-		modelMatrix = glm::mat4(1.0f);
 
 		// Assign variables to 
 		for (unsigned int i = 0; i < 4 * 4; i++)
@@ -53,8 +52,6 @@ public:
 				-halfSize,  halfSize, 0.0f, 1.0f    // 3
 		};
 
-		modelMatrix = glm::mat4(1.0f);
-
 		// Assign variables to 
 		for (unsigned int i = 0; i < 4 * 4; i++)
 		{
@@ -74,6 +71,10 @@ class Fluid
 private:
 	std::vector<Particle> particles;
 	std::vector<Entity> particleEntity;
+	/// <summary>
+	/// Used to store each particle's position 
+	/// </summary>
+	std::vector<glm::vec3> positions;
 
 	std::vector<std::vector<Cell>> velField;
 	
@@ -92,13 +93,11 @@ public:
 	Fluid(float _gravity, float _cellSize, int _sideLength, int particleCount, float particleSize);
 	~Fluid();
 
+	void SetParticlePosition(unsigned int index, glm::vec3 pos);
+
 	Particle GetParticle(int index);
 	Entity GetEntity(int index);
-
-	/// <summary>
-	/// Used to store each particle's position 
-	/// </summary>
-	std::vector<glm::vec3> positions;
+	glm::mat4 GetModel(int index);
 
 private:
 	void SimulateParticles();
