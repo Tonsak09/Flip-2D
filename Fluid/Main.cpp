@@ -35,6 +35,13 @@ const float GetRand()
     return ((double)rand() / (RAND_MAX));
 }
 
+void SetColor(Shader& shader, glm::vec4& color)
+{
+    shader.Bind();
+    shader.SetUniform4f("u_Color", color.r, color.g, color.b, color.a);
+    shader.Unbind();
+}
+
 /// <summary>
 /// Renderers each particle
 /// </summary>
@@ -55,13 +62,23 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 /// <summary>
 /// Renders the grid the particles are organized on 
 /// </summary>
-void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
+void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
 {
     float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
     for (unsigned int x = 0; x < GRIDSIZECOUNT; x++)
     {
         for (unsigned int y = 0; y < GRIDSIZECOUNT; y++)
         {
+            // Change cell color based on purpose 
+            if ((x == 0 || x == GRIDSIZECOUNT - 1) || (y == 0 || y == GRIDSIZECOUNT - 1))
+            {
+                SetColor(shader, SOLIDCELLCOLOR);
+            }
+            else
+            {
+                SetColor(shader, FLUIDCELLCOLOR);
+            }
+
             // Get the center of a cell by taking into account
             // size and borders 
             glm::vec3 center = glm::vec3
@@ -86,12 +103,7 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
     }
 }
 
-void SetColor(Shader& shader, glm::vec4& color)
-{
-    shader.Bind();
-    shader.SetUniform4f("u_Color", color.r, color.g, color.b, color.a);
-    shader.Unbind();
-}
+
 
 int main(void)
 {
@@ -102,10 +114,12 @@ int main(void)
     const int PARTICLECOUNT = 20;
     const float STANDARDSIZE = 10.0f;
 
-    const int GRIDSIZECOUNT = 10;
-    const float CELLSIZE = 100.0f;
-    const float CELLSPACINGSIZE = -1.0f;
-    const float CELLVISUALSCALAR = 10.0f;
+    const int GRIDSIZECOUNT = 13;
+    const float CELLSIZE = 50.0f;
+    const float CELLSPACINGSIZE = 0.0f;
+    const float CELLVISUALSCALAR = 5.0f;
+
+    const float TIMESTEP = 0.1f;
 
     // Useful reference 
     const unsigned int INDICIES[6] =
@@ -114,7 +128,8 @@ int main(void)
         2, 3, 0,
     };
 
-    glm::vec4 CELLCOLOR = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
+    glm::vec4 FLUIDCELLCOLOR = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
+    glm::vec4 SOLIDCELLCOLOR = glm::vec4(0.5f, 0.0f, 0.0f, 1.0f);
     glm::vec4 PARTICLECOLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     // Counts so easier to call 
@@ -153,7 +168,7 @@ int main(void)
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
+    Fluid fluid(-9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
     Entity entity(glm::vec3(0), 100.0f); // Used for indicy mat TEMP
 
     // Set starting positions 
@@ -252,8 +267,8 @@ int main(void)
             renderer.Clear();
 
             // Rendering the grid
-            SetColor(shader, CELLCOLOR);
-            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, proj, view, shader, renderer, va, ib);
+            
+            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib);
 
             // Rendering the particle
             SetColor(shader, PARTICLECOLOR);
@@ -284,6 +299,8 @@ int main(void)
             ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
             #pragma endregion
 
+            fluid.SimulateParticles(TIMESTEP);
+
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
 
@@ -291,7 +308,7 @@ int main(void)
             glfwPollEvents();
 
             // Update at constant (enough) time
-            Sleep(0.1f);
+            Sleep(TIMESTEP);
         }
     }
     // Cleanup

@@ -116,15 +116,10 @@ public:
 	Entity GetEntity(int index);
 	glm::mat4 GetModel(int index);
 
-private:
-	void SimulateParticles();
+	void SimulateParticles(float timeStep);
 	void TransferToVelField();
 	void MakeIncompressible();
 	void AddChangeToParticles();
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
-
-private:
-	void RenderGrid(Renderer renderer);
-	void RenderParticles(Renderer renderer);
 };
