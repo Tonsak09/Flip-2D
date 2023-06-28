@@ -58,6 +58,23 @@ public:
 			positions[i] = posTemp[i];
 		}
 	}
+
+	/// <summary>
+	/// Updates the particles position based on its velocity 
+	/// </summary>
+	/// <param name="timeStep"></param>
+	void MoveByVel(float timeStep)
+	{
+		*pos += vel * timeStep;
+	}
+
+	/// <summary>
+	/// Set the velocity of the particle 
+	/// </summary>
+	void SetVel(glm::vec3 nextVel)
+	{
+		vel = nextVel;
+	}
 };
 
 struct Cell

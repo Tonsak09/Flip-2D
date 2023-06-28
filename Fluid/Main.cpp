@@ -42,7 +42,9 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 {
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
-        glm::mat4 mvp = proj * view * fluid.GetModel(i);
+        glm::mat4 model = fluid.GetModel(i);
+
+        glm::mat4 mvp = proj * view * model;
         shader.Bind();
 
         shader.SetUniformMat4f("u_MVP", mvp);
@@ -53,7 +55,7 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 /// <summary>
 /// Renders the grid the particles are organized on 
 /// </summary>
-void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
+void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
 {
     float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
     for (unsigned int x = 0; x < GRIDSIZECOUNT; x++)
@@ -69,13 +71,26 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
                 0.0f
             );
 
-            glm::mat4 mvp = proj * view * glm::translate(glm::mat4(1.0f), center);
+            // Move 
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), center);
+            // Scale 
+            model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
+            
+
+            glm::mat4 mvp = proj * view * model;
             shader.Bind();
 
             shader.SetUniformMat4f("u_MVP", mvp);
             renderer.Draw(va, ib, shader);
         }
     }
+}
+
+void SetColor(Shader& shader, glm::vec4& color)
+{
+    shader.Bind();
+    shader.SetUniform4f("u_Color", color.r, color.g, color.b, color.a);
+    shader.Unbind();
 }
 
 int main(void)
@@ -85,15 +100,29 @@ int main(void)
     const int HEIGHT = 540;
 
     const int PARTICLECOUNT = 20;
-    const float PARTICLESIZE = 100.0f;
+    const float STANDARDSIZE = 10.0f;
 
     const int GRIDSIZECOUNT = 10;
     const float CELLSIZE = 100.0f;
-    const float CELLSPACINGSIZE = 5.0f;
+    const float CELLSPACINGSIZE = -1.0f;
+    const float CELLVISUALSCALAR = 10.0f;
+
+    // Useful reference 
+    const unsigned int INDICIES[6] =
+    {
+        0, 1, 2,
+        2, 3, 0,
+    };
+
+    glm::vec4 CELLCOLOR = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
+    glm::vec4 PARTICLECOLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     // Counts so easier to call 
     int indiciesCount = 6 * PARTICLECOUNT;    // One Entity has 6 indicies 
     int positionCount = 16 * PARTICLECOUNT;   // One Entity has 16 positions (Includes corners and UV)
+
+    // Set random seed
+    srand(time(NULL));
 
     #pragma region glfwWindow
     GLFWwindow* window;
@@ -124,7 +153,7 @@ int main(void)
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, PARTICLESIZE);
+    Fluid fluid(9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
     Entity entity(glm::vec3(0), 100.0f); // Used for indicy mat TEMP
 
     // Set starting positions 
@@ -132,9 +161,6 @@ int main(void)
     {
         glm::vec3 rand = glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0);
         fluid.SetParticlePosition(i, rand);
-        std::cout << (*fluid.GetParticle(i).pos).x << ", ";
-        std::cout << (*fluid.GetParticle(i).pos).y << ", ";
-        std::cout << (*fluid.GetParticle(i).pos).z << std::endl;
     }
 
 
@@ -143,22 +169,25 @@ int main(void)
     std::vector<unsigned int> indicies = std::vector <unsigned int>();
     
 
-    // Go through the vector and combine all the positions
-    // and indicies 
+    // Go through the vector and combine all the positions and indicies 
+
+    // Particle Positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
         // Apply individual entity positions to main vector 
         for (unsigned int p = 0; p < positionCount; p++)
         {
-            flattenedPositions.push_back(fluid.GetEntity(i).positions[p]);
+            flattenedPositions.push_back(fluid.GetParticle(i).positions[p]);
         }
 
         // Apply individual entity indicies to main vector 
         for (unsigned int j = 0; j < indiciesCount; j++)
         {
-            indicies.push_back(fluid.GetEntity(i).INDICIES[j] + (i * 4));
+            indicies.push_back(INDICIES[j] + (i * 4));
         }
     }
+
+    
 
     // Get the beginning of each main vector 
     float* posPointer = &flattenedPositions[0];
@@ -177,7 +206,7 @@ int main(void)
         GLCall(glBindVertexArray(vao));
 
         VertexArray va;
-        VertexBuffer vb(posPointer, positionCount * sizeof(float));
+        VertexBuffer vb(posPointer, (positionCount) * sizeof(float));
         VertexBufferLayout layout;
 
         layout.Push<float>(2);
@@ -196,7 +225,7 @@ int main(void)
         shader.Bind();
 
         // Bind the texture 
-        Texture texture("res/textures/Eidos_Logo.jpeg");
+        Texture texture("res/textures/BevelSquare.png");
         texture.Bind();
         shader.SetUniform1i("u_Texture", 0);
 
@@ -222,10 +251,12 @@ int main(void)
             /* Render here */
             renderer.Clear();
 
-            // Rendering the grid 
-            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, proj, view, shader, renderer, va, ib);
+            // Rendering the grid
+            SetColor(shader, CELLCOLOR);
+            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, proj, view, shader, renderer, va, ib);
 
-            // Rendering the particle 
+            // Rendering the particle
+            SetColor(shader, PARTICLECOLOR);
             RenderParticles(PARTICLECOUNT, proj, view, fluid, shader, renderer, va, ib);
             
             #pragma region GUI
