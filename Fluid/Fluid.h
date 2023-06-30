@@ -75,6 +75,11 @@ public:
 	{
 		vel = nextVel;
 	}
+
+	float GetHalfSize()
+	{
+		return halfSize;
+	}
 };
 
 struct Cell

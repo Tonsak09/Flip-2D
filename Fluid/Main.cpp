@@ -28,7 +28,8 @@
 #include <string.h>
 
 #include "Fluid.h"
-#include "Main.h"
+#include "Collision.h"
+#include "Main.h" // Auto generated?? 
 
 const float GetRand()
 {
@@ -62,7 +63,7 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 /// <summary>
 /// Renders the grid the particles are organized on 
 /// </summary>
-void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
+void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
 {
     float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
     for (unsigned int x = 0; x < GRIDSIZECOUNT; x++)
@@ -79,6 +80,8 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
                 SetColor(shader, FLUIDCELLCOLOR);
             }
 
+           
+
             // Get the center of a cell by taking into account
             // size and borders 
             glm::vec3 center = glm::vec3
@@ -93,6 +96,16 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
             // Scale 
             model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
             
+            for (unsigned int i = 0; i < 20; i++)
+            {
+                if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *fluid.GetParticle(i).pos, glm::vec2(1.0f) * fluid.GetParticle(i).GetHalfSize()))
+                {
+                    glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+                    SetColor(shader, color);
+                    break;
+                }
+            }
+            
 
             glm::mat4 mvp = proj * view * model;
             shader.Bind();
@@ -102,8 +115,6 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
         }
     }
 }
-
-
 
 int main(void)
 {
@@ -119,7 +130,7 @@ int main(void)
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 5.0f;
 
-    const float TIMESTEP = 0.1f;
+    const float TIMESTEP = 0.03f;
 
     // Useful reference 
     const unsigned int INDICIES[6] =
@@ -169,7 +180,6 @@ int main(void)
     #pragma region Rendering&Entity
     
     Fluid fluid(-9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
-    Entity entity(glm::vec3(0), 100.0f); // Used for indicy mat TEMP
 
     // Set starting positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
@@ -178,7 +188,7 @@ int main(void)
         fluid.SetParticlePosition(i, rand);
     }
 
-
+    
     // Vectors that contain the positions and indicies of all entities 
     std::vector<float> flattenedPositions = std::vector <float>();
     std::vector<unsigned int> indicies = std::vector <unsigned int>();
@@ -268,7 +278,7 @@ int main(void)
 
             // Rendering the grid
             
-            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib);
+            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib, fluid);
 
             // Rendering the particle
             SetColor(shader, PARTICLECOLOR);
