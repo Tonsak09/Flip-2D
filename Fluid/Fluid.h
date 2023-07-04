@@ -84,8 +84,18 @@ public:
 
 struct Cell
 {
-	float* q1, q2, q3, q4;
-	bool notSolid; 
+	float* q1, q2, q3, q4; // Shared corners between cells 
+	float halfSize;
+	bool isSolid; 
+
+	int xIndex;
+	int yIndex;
+
+	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid)
+		: xIndex(_xIndex), yIndex(_yIndex), halfSize(_halfSize), isSolid(_isSolid)
+	{
+
+	}
 };
 
 class Fluid
@@ -99,9 +109,10 @@ private:
 	std::vector<glm::vec3> positions;
 
 	std::vector<std::vector<Cell>> velField;
+	std::vector<Cell> cells;
 	
 	float gravity;
-	float cellSize;
+	float cellSize; // NOT HALFSIZE!!!
 	int sideLength;
 
 
@@ -112,12 +123,12 @@ public:
 	/// <param name="_gravity">How much are fluid particles accelerated downards</param>
 	/// <param name="_cellSize">What is the size in pixels of each cell</param>
 	/// <param name="_sideLength">How many cells make up one size of the square simulation area</param>
-	Fluid(float _gravity, float _cellSize, int _sideLength, int particleCount, float particleSize);
+	Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLength, int particleCount, float particleSize);
 	~Fluid();
 
 	void SetParticlePosition(unsigned int index, glm::vec3 pos);
 
-	Particle GetParticle(int index);
+	Particle* GetParticle(int index);
 	Entity GetEntity(int index);
 	glm::mat4 GetModel(int index);
 
@@ -127,4 +138,5 @@ public:
 	void AddChangeToParticles();
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
+	std::vector<Cell> GetCells();
 };

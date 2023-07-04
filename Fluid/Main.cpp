@@ -63,9 +63,69 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 /// <summary>
 /// Renders the grid the particles are organized on 
 /// </summary>
-void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
+void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
 {
     float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
+
+    std::vector<Cell> cells = fluid.GetCells();
+    int cellCount = cells.size();
+
+    for (unsigned int i = 0; i < cellCount; i++)
+    {
+        Cell* current = &cells[i];
+        int x = (*current).xIndex;
+        int y = (*current).yIndex;
+
+
+        if ((*current).isSolid)
+        {
+            SetColor(shader, SOLIDCELLCOLOR);
+        }
+        else
+        {
+            SetColor(shader, FLUIDCELLCOLOR);
+        }
+
+        // Get the center of a cell by taking into account
+            // size and borders 
+        glm::vec3 center = glm::vec3
+        (
+            x * trueCellSize + (trueCellSize / 2.0f),
+            y * trueCellSize + (trueCellSize / 2.0f),
+            0.0f
+        );
+
+        // Move 
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), center);
+        // Scale 
+        model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
+
+
+
+
+        // Go through to see if colliding
+        for (unsigned int i = 0; i < 20; i++)
+        {
+            Particle* current = fluid.GetParticle(i);
+            if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*current).pos, glm::vec2(1.0f) * (*current).GetHalfSize()))
+            {
+                //(*current).vel = glm::vec3(0);
+
+                // Change visual based on collision 
+                glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+                SetColor(shader, color);
+                break;
+            }
+        }
+
+
+        glm::mat4 mvp = proj * view * model;
+        shader.Bind();
+
+        shader.SetUniformMat4f("u_MVP", mvp);
+        renderer.Draw(va, ib, shader);
+    }
+    /*
     for (unsigned int x = 0; x < GRIDSIZECOUNT; x++)
     {
         for (unsigned int y = 0; y < GRIDSIZECOUNT; y++)
@@ -96,10 +156,18 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
             // Scale 
             model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
             
+
+
+
+            // Go through to see if colliding
             for (unsigned int i = 0; i < 20; i++)
             {
-                if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *fluid.GetParticle(i).pos, glm::vec2(1.0f) * fluid.GetParticle(i).GetHalfSize()))
+                Particle* current = fluid.GetParticle(i);
+                if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*current).pos, glm::vec2(1.0f) * (*current).GetHalfSize()))
                 {
+                    //(*current).vel = glm::vec3(0);
+
+                    // Change visual based on collision 
                     glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
                     SetColor(shader, color);
                     break;
@@ -114,6 +182,7 @@ void RenderGrid(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& 
             renderer.Draw(va, ib, shader);
         }
     }
+    */
 }
 
 int main(void)
@@ -179,7 +248,7 @@ int main(void)
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(-9.81f, CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
+    Fluid fluid(-10.0f, glm::vec3(0.0f, 20.0f, 0.0f), CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
 
     // Set starting positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
@@ -199,10 +268,11 @@ int main(void)
     // Particle Positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
+        Particle* current = fluid.GetParticle(i);
         // Apply individual entity positions to main vector 
         for (unsigned int p = 0; p < positionCount; p++)
         {
-            flattenedPositions.push_back(fluid.GetParticle(i).positions[p]);
+            flattenedPositions.push_back((*current).positions[p]);
         }
 
         // Apply individual entity indicies to main vector 
@@ -278,7 +348,7 @@ int main(void)
 
             // Rendering the grid
             
-            RenderGrid(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib, fluid);
+            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib, fluid);
 
             // Rendering the particle
             SetColor(shader, PARTICLECOLOR);
