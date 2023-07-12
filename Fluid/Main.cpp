@@ -75,7 +75,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         Cell* current = &cells[i];
         int x = (*current).xIndex;
         int y = (*current).yIndex;
-
+        
 
         if ((*current).isSolid)
         {
@@ -106,14 +106,29 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         // Go through to see if colliding
         for (unsigned int i = 0; i < 20; i++)
         {
-            Particle* current = fluid.GetParticle(i);
-            if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*current).pos, glm::vec2(1.0f) * (*current).GetHalfSize()))
+            Particle* particleCurrent = fluid.GetParticle(i);
+            if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*particleCurrent).pos, glm::vec2(1.0f) * (*particleCurrent).GetHalfSize()))
             {
                 //(*current).vel = glm::vec3(0);
 
                 // Change visual based on collision 
                 glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
                 SetColor(shader, color);
+
+                bool adjustOnX = (*current).pushDir == Cell::XAxis;
+
+                if (current->isSolid)
+                {
+                    std::cout << center.x << std::endl;
+                    *particleCurrent->pos += glm::vec3(
+                        CorrectPosIfColliding(
+                            glm::vec2(x * trueCellSize, y * trueCellSize), 
+                            glm::vec2(1.0f) * trueCellSize / 2.0f, 
+                            *particleCurrent->pos, 
+                            glm::vec2(0.0f) * particleCurrent->GetHalfSize(), 
+                            adjustOnX), 0.0f);
+                }
+
                 break;
             }
         }

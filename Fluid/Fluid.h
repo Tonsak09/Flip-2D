@@ -91,11 +91,24 @@ struct Cell
 	int xIndex;
 	int yIndex;
 
-	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid)
+	/// <summary>
+	/// In what direction should particles be moved
+	/// </summary>
+	enum PushDirections
+	{
+		None  = 0,
+		XAxis = 1,
+		YAxis = 1
+	};
+	PushDirections pushDir;
+
+	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid, 
+		Cell::PushDirections _pushDirection)
 		: xIndex(_xIndex), yIndex(_yIndex), halfSize(_halfSize), isSolid(_isSolid)
 	{
-
+		pushDir = _pushDirection;
 	}
+	
 };
 
 class Fluid
