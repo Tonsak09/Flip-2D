@@ -229,12 +229,15 @@ int main(void)
     const int PARTICLECOUNT = 20;
     const float STANDARDSIZE = 10.0f;
 
-    const int GRIDSIZECOUNT = 13;
+    const int GRIDSIZECOUNT = 20;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 1.0f;
 
-    const float TIMESTEP = 0.03f;
+    const float TIMESTEP = 0.1f;
+
+    const glm::vec3 STARTOFFSET = glm::vec3(150.0f, 150.0f, 0.0f);
+    const float STARTRADIUS = 200.0f;
 
     // Useful reference 
     const unsigned int INDICIES[6] =
@@ -288,8 +291,9 @@ int main(void)
     // Set starting positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
-        glm::vec3 rand = glm::vec3(GetRand() * WIDTH, GetRand() * HEIGHT, 0);
-        fluid.SetParticlePosition(i, rand);
+        
+        glm::vec3 rand = glm::vec3(GetRand() * STARTRADIUS, GetRand() * STARTRADIUS, 0);
+        fluid.SetParticlePosition(i, STARTOFFSET + rand);
     }
 
     
