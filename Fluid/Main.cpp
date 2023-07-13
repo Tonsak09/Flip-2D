@@ -230,9 +230,9 @@ int main(void)
     const float STANDARDSIZE = 10.0f;
 
     const int GRIDSIZECOUNT = 13;
-    const float CELLSIZE = 50.0f;
+    const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
-    const float CELLVISUALSCALAR = 5.0f;
+    const float CELLVISUALSCALAR = 1.0f;
 
     const float TIMESTEP = 0.03f;
 
