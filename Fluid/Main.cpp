@@ -43,6 +43,11 @@ void SetColor(Shader& shader, glm::vec4& color)
     shader.Unbind();
 }
 
+void PrintVec3(glm::vec3 vector)
+{
+    std::cout << vector.x << ", " << vector.y << ", " << vector.z << std::endl;
+}
+
 /// <summary>
 /// Renderers each particle
 /// </summary>
@@ -115,18 +120,33 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
                 glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
                 SetColor(shader, color);
 
-                bool adjustOnX = (*current).pushDir == Cell::XAxis;
+                bool adjustOnX = (*current).pushDir != Cell::XAxis;
 
+                // Check if solid cell 
                 if (current->isSolid)
                 {
-                    std::cout << center.x << std::endl;
-                    *particleCurrent->pos += glm::vec3(
+                    glm::vec2 nextPos =
                         CorrectPosIfColliding(
-                            glm::vec2(x * trueCellSize, y * trueCellSize), 
-                            glm::vec2(1.0f) * trueCellSize / 2.0f, 
-                            *particleCurrent->pos, 
-                            glm::vec2(0.0f) * particleCurrent->GetHalfSize(), 
-                            adjustOnX), 0.0f);
+                            glm::vec2(x * trueCellSize, y * trueCellSize),
+                            glm::vec2(1.0f) * trueCellSize,
+                            *particleCurrent->pos,
+                            glm::vec2(1.0f) * particleCurrent->GetHalfSize(),
+                            adjustOnX);
+
+                    // Set new position 
+                    *particleCurrent->pos = glm::vec3(nextPos, 0.0f);
+
+                    // Correct velocity 
+                    if (adjustOnX)
+                    {
+                        particleCurrent->SetVel(glm::vec3(0.0f, particleCurrent->vel.y, 0.0f));
+
+                    }
+                    else
+                    {
+                        particleCurrent->SetVel(glm::vec3(particleCurrent->vel.x, 0.0f, 0.0f));
+
+                    }
                 }
 
                 break;
