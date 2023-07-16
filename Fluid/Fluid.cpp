@@ -392,7 +392,6 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 	{
 		Cell cell = (*nextValues)[i];
 		
-
 		if (cell.q1 != nullptr)
 		{
 			if (glm::abs(*cell.r1) > 0.0f)
@@ -506,33 +505,34 @@ void Fluid::SimulateFlip()
 	for (unsigned int i = 0; i < nextValues.size(); i++)
 	{
 		Cell* cell = &(nextValues[i]);
+		Cell oldCell = (cells[i]);
 
 		float* _q1 = cell->q1;
 		if (_q1 != nullptr)
 		{
-			cell->q1 = new float(1.0f);
-			cell->r1 = new float(0.0f);
+			cell->q1 = new float(*oldCell.q1);
+			cell->r1 = new float(*oldCell.r1);
 		}
 
-		float* _q2 = cell->q1;
-		if (_q1 != nullptr)
+		float* _q2 = cell->q2;
+		if (_q2 != nullptr)
 		{
-			cell->q2 = new float(-1.0f);
-			cell->r2 = new float(0.0f);
+			cell->q2 = new float(*oldCell.q2);
+			cell->r2 = new float(*oldCell.r2);
 		}
 
-		float* _q3 = cell->q1;
-		if (_q1 != nullptr)
+		float* _q3 = cell->q3;
+		if (_q3 != nullptr)
 		{
-			cell->q3 = new float(1.0f);
-			cell->r3 = new float(0.0f);
+			cell->q3 = new float(*oldCell.q3);
+			cell->r3 = new float(*oldCell.r3);
 		}
 
-		float* _q4 = cell->q1;
-		if (_q1 != nullptr)
+		float* _q4 = cell->q4;
+		if (_q4 != nullptr)
 		{
-			cell->q4 = new float(-1.0f);
-			cell->r4 = new float(0.0f);
+			cell->q4 = new float(*oldCell.q4);
+			cell->r4 = new float(*oldCell.r4);
 		}
 	}
 
