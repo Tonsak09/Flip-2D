@@ -400,16 +400,16 @@ int main(void)
 
 
             { // Actual gui values and interface 
-                static float f = 0.0f;
-                for (unsigned int i = 0; i < translations.size(); i++)
-                {
-                    // Apply a slider for each entity 
-                    std::string title = "Translation ";
-                    std::string index = std::to_string(i);
-                    std::string combine = title + index;
+                //static float f = 0.0f;
+                //for (unsigned int i = 0; i < translations.size(); i++)
+                //{
+                //    // Apply a slider for each entity 
+                //    std::string title = "Translation ";
+                //    std::string index = std::to_string(i);
+                //    std::string combine = title + index;
 
-                    ImGui::SliderFloat3(combine.c_str(), &translations[i].x, 0.0f, 960.0f);
-                }
+                //    ImGui::SliderFloat3(combine.c_str(), &translations[i].x, 0.0f, 960.0f);
+                //}
 
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             } 
@@ -419,6 +419,7 @@ int main(void)
             #pragma endregion
 
             fluid.SimulateParticles(TIMESTEP);
+            fluid.SimulateFlip();
 
             /* Swap front and back buffers */
             glfwSwapBuffers(window);

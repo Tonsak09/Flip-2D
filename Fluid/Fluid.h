@@ -5,7 +5,6 @@
 #include "Entity.h"
 #include "Renderer.h"
 
-
 struct Particle
 {
 
@@ -84,7 +83,18 @@ public:
 
 struct Cell
 {
-	float* q1, q2, q3, q4; // Shared corners between cells 
+	// Shared corners between cells 
+	float* q1;
+	float* q2;
+	float* q3;
+	float* q4;
+
+	float* r1;
+	float* r2;
+	float* r3;
+	float* r4;
+
+
 	float halfSize;
 	bool isSolid; 
 
@@ -103,10 +113,22 @@ struct Cell
 	PushDirections pushDir;
 
 	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid, 
+		float* _q1, float* _q2, float* _q3, float* _q4,
+		float* _r1, float* _r2, float* _r3, float* _r4,
 		Cell::PushDirections _pushDirection)
 		: xIndex(_xIndex), yIndex(_yIndex), halfSize(_halfSize), isSolid(_isSolid)
 	{
 		pushDir = _pushDirection;
+
+		q1 = _q1;
+		q2 = _q2;
+		q3 = _q3;
+		q4 = _q4;
+
+		r1 = _r1;
+		r2 = _r2;
+		r3 = _r3;
+		r4 = _r4;
 	}
 	
 };
@@ -124,9 +146,16 @@ private:
 	std::vector<std::vector<Cell>> velField;
 	std::vector<Cell> cells;
 	
+	std::vector<float*> qValues;
+	std::vector<float*> rValues;
+
 	float gravity;
 	float cellSize; // NOT HALFSIZE!!!
 	int sideLength;
+
+	void TransferToVelField(std::vector<Cell> *nextValues);
+	void MakeIncompressible();
+	void AddChangeToParticles();
 
 
 public:
@@ -146,9 +175,7 @@ public:
 	glm::mat4 GetModel(int index);
 
 	void SimulateParticles(float timeStep);
-	void TransferToVelField();
-	void MakeIncompressible();
-	void AddChangeToParticles();
+	void SimulateFlip();
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
 	std::vector<Cell> GetCells();
