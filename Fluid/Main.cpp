@@ -421,6 +421,9 @@ int main(void)
             fluid.SimulateParticles(TIMESTEP);
             fluid.SimulateFlip();
 
+            //PrintVec3(fluid.GetParticle(0)->vel);
+            PrintVec3(*(fluid.GetParticle(0)->pos));
+
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
 

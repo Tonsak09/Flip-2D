@@ -24,6 +24,7 @@
 !VertexBuffer.h
 !VertexBufferLayout.h
 !Fluid.h
+!Fluid.cpp
 
 # ...even if they are in subdirectories
 !*/

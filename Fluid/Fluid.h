@@ -13,6 +13,8 @@ private:
 
 public:
 	unsigned int index;
+	float qp;
+
 	glm::vec3* pos; // Address to position which is held in another vector 
 	glm::vec3 vel;
 
@@ -153,9 +155,11 @@ private:
 	float cellSize; // NOT HALFSIZE!!!
 	int sideLength;
 
+	glm::vec2 GetCellVel(Cell cell);
+
 	void TransferToVelField(std::vector<Cell> *nextValues);
-	void MakeIncompressible();
-	void AddChangeToParticles();
+	void MakeIncompressible(std::vector<Cell>* nextValues, int iterations, float overrelaxation);
+	void AddChangeToParticles(std::vector<Cell>* nextValues);
 
 
 public:
