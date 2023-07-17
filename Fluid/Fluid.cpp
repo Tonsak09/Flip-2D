@@ -1,5 +1,5 @@
 #include "Fluid.h"
-
+#include <iostream>
 Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLength, int particleCount, float particleSize)
 	:gravity(_gravity), cellSize(_cellSize), sideLength(_sideLength)
 {
@@ -40,8 +40,7 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 	// Setup cells
 	for (unsigned int x = 0; x < sideLength; x++)
 	{
-		bool isXEdge = (x <= 0 || x >= sideLength - 1);
-
+		bool isXEdge = (x == 0 || x == sideLength - 1);
 
 		// Previous edge is set
 		xQLess = xQMore;
@@ -77,6 +76,7 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 		for (unsigned int y = 0; y < sideLength; y++)
 		{
 			bool isYEdge = (y == 0 || y == sideLength - 1);
+			//std::cout << isXEdge << std::endl;
 
 			// Previous edge is set
 			yQLess = yQMore;
@@ -110,17 +110,16 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 			{
 				// Whether to set to push horizontally
 				// or vertically 
-				pushDir = (x == 0 || x == sideLength - 1) ? Cell::XAxis : Cell::YAxis;
+				pushDir = isXEdge ? Cell::XAxis : Cell::YAxis;
 			}
 
 			cells.push_back(Cell(x, y, _cellSize, isSolid, 
 				xQLess, xQMore, yQLess, yQMore, 
 				xRLess, xRMore, yRLess, yRMore, 
 				pushDir));
+
 		}
 	}
-
-
 }
 
 Fluid::~Fluid()
@@ -203,7 +202,7 @@ glm::vec2 Fluid::GetCellVel(Cell cell)
 	}
 
 
-	return glm::vec2(x, y);
+	return glm::vec2(x, y) / 2.0f;
 }
 
 /// <summary>
@@ -225,7 +224,7 @@ void Fluid::SimulateParticles(float timeStep)
 		Particle *current = &particles[i];
 		
 		(*current).vel += glm::vec3(0.0f, 1.0f, 0.0f) * gravity * timeStep;
-		(*current).MoveByVel(timeStep);
+		(*current).MoveByVel(timeStep, cellSize, sideLength, &cells);
 	}
 }
 
@@ -260,16 +259,16 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 		float deltaY = particlePos.y - cellSize;
 
 		// Weights for how much each corner is affected by particle
-		float w1 = (1.0f - xCell) * (1.0f - yCell);
+		/*float w1 = (1.0f - xCell) * (1.0f - yCell);
 		float w2 = xCell * (1 - yCell);
 		float w3 = xCell * yCell;
 		float w4 = (1 - xCell) * yCell;
 
 		float numerator = 0.0f;
-		float denomenator = 0.0f;
+		float denomenator = 0.0f;*/
 
 		// Add corner points 
-		if (cell.q1 != nullptr)
+		/*if (cell.q1 != nullptr)
 		{
 			numerator += w1 * *cell.q1;
 			denomenator += w1;
@@ -292,7 +291,7 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 			numerator += w4 * *cell.q4;
 			denomenator += w4;
 		}
-		current->qp = numerator / denomenator;
+		current->qp = numerator / denomenator;*/
 	}
 
 	// Reset all cells 
@@ -345,38 +344,42 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 		int xCell = particlePos.x / cellSize;
 		int yCell = particlePos.y / cellSize;
 
+
 		int cellIndex = xCell + sideLength * yCell;
 		if (cellIndex >= nextValues->size())
 		{
 			continue;
 		}
 		Cell cell = (*nextValues)[cellIndex];
+		float deltaX = glm::abs(xCell * cellSize - particlePos.x);
+		float deltaY = glm::abs(yCell * cellSize - particlePos.y);
 
-		float w1 = (1.0f - xCell) * (1.0f - yCell);
-		float w2 = xCell * (1 - yCell);
-		float w3 = xCell * yCell;
-		float w4 = (1 - xCell) * yCell;
+
+		float w1 = (1.0f - deltaX / cellSize) * (1.0f - deltaY / cellSize);
+		float w2 = deltaX / cellSize * (1 - deltaY / cellSize);
+		float w3 = deltaX / cellSize * deltaY / cellSize;
+		float w4 = (1 - deltaX / cellSize) * deltaY / cellSize;
 
 
 		// Apply velocities to the next grid 
 		if (cell.q1 != nullptr)
 		{
-			*cell.q1 += w1 * current->qp;
+			*cell.q1 += w1 * current->vel.x;
 			*cell.r1 += w1;
 		}
 		if (cell.q2 != nullptr)
 		{
-			*cell.q2 += w2 * current->qp;
+			*cell.q2 += w2 * current->vel.x;
 			*cell.r2 += w2;
 		}
 		if (cell.q3 != nullptr)
 		{
-			*cell.q3 += w3 * current->qp;
+			*cell.q3 += w3 * current->vel.y;
 			*cell.r3 += w3;
 		}
 		if (cell.q4 != nullptr)
 		{
-			*cell.q4 += w4 * current->qp;
+			*cell.q4 += w4 * current->vel.y;
 			*cell.r4 += w4;
 		}
 	}
@@ -491,7 +494,8 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues)
 		glm::vec2 old = GetCellVel(cellOld);
 		glm::vec2 changeInGridVel = next - old;
 
-		current->vel += glm::vec3(changeInGridVel, 0.0f);
+		current->vel += glm::vec3(changeInGridVel, 0.0f) / 100.0f;
+
 		cells = *nextValues;
 	}
 }
@@ -541,5 +545,3 @@ void Fluid::SimulateFlip()
 	MakeIncompressible(&nextValues, 7, 1.0f);
 	AddChangeToParticles(&nextValues);
 }
-
-// AT SOME POINT OLD'S CELL VALUES ALL BECOME NULL

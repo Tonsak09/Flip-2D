@@ -31,6 +31,8 @@
 #include "Collision.h"
 #include "Main.h" // Auto generated?? 
 
+#include<ctime>
+
 const float GetRand()
 {
     return ((double)rand() / (RAND_MAX));
@@ -68,7 +70,7 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 /// <summary>
 /// Renders the grid the particles are organized on 
 /// </summary>
-void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
+void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, const int& PARTICLECOUNT, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
 {
     float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
 
@@ -84,7 +86,15 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
 
         if ((*current).isSolid)
         {
-            SetColor(shader, SOLIDCELLCOLOR);
+            if (current->pushDir == Cell::XAxis)
+            {
+                //SetColor(shader, SOLIDCELLCOLOR);
+                SetColor(shader, SOLIDCELLCOLOR);
+            }
+            else
+            {
+                SetColor(shader, FLUIDCELLCOLOR);
+            }
         }
         else
         {
@@ -109,9 +119,9 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
 
 
         // Go through to see if colliding
-        for (unsigned int i = 0; i < 20; i++)
+        for (unsigned int p = 0; p < PARTICLECOUNT; p++)
         {
-            Particle* particleCurrent = fluid.GetParticle(i);
+            Particle* particleCurrent = fluid.GetParticle(p);
             if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*particleCurrent).pos, glm::vec2(1.0f) * (*particleCurrent).GetHalfSize()))
             {
                 //(*current).vel = glm::vec3(0);
@@ -120,7 +130,8 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
                 glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
                 SetColor(shader, color);
 
-                bool adjustOnX = (*current).pushDir != Cell::XAxis;
+                bool adjustOnX = (*current).xIndex == 0; //(*current).pushDir != Cell::XAxis;
+                std::cout << (*current).xIndex << std::endl;
 
                 // Check if solid cell 
                 if (current->isSolid)
@@ -226,7 +237,7 @@ int main(void)
     const int WIDTH = 960;
     const int HEIGHT = 540;
 
-    const int PARTICLECOUNT = 20;
+    const int PARTICLECOUNT = 40;
     const float STANDARDSIZE = 10.0f;
 
     const int GRIDSIZECOUNT = 20;
@@ -379,15 +390,19 @@ int main(void)
         std::vector<glm::vec3> translations = std::vector<glm::vec3>(PARTICLECOUNT);
         #pragma endregion
 
+        clock_t mainClock = clock();
+
         /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
+            clock_t time_req;
+            time_req = clock();
             /* Render here */
             renderer.Clear();
 
             // Rendering the grid
             
-            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib, fluid);
+            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib, fluid);
 
             // Rendering the particle
             SetColor(shader, PARTICLECOLOR);
@@ -418,11 +433,12 @@ int main(void)
             ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
             #pragma endregion
 
-            fluid.SimulateParticles(TIMESTEP);
+
+            //PrintVec3((fluid.GetParticle(0)->vel));
+
+            fluid.SimulateParticles(TIMESTEP );
             fluid.SimulateFlip();
 
-            //PrintVec3(fluid.GetParticle(0)->vel);
-            PrintVec3(*(fluid.GetParticle(0)->pos));
 
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
@@ -431,7 +447,8 @@ int main(void)
             glfwPollEvents();
 
             // Update at constant (enough) time
-            Sleep(TIMESTEP);
+            time_req = clock() - time_req;
+            Sleep(TIMESTEP - (float)time_req / CLOCKS_PER_SEC);
         }
     }
     // Cleanup
