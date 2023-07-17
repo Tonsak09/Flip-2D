@@ -120,11 +120,24 @@ public:
 	/// <param name="timeStep"></param>
 	void MoveByVel(float timeStep, float cellSize, int sideLength, std::vector<Cell>* cells)
 	{
-		*pos += vel * timeStep;
+		//*pos += vel * timeStep;
+
+
+		glm::vec2 next = *pos + vel * timeStep;
+		if (IsIntersectingRect(
+			glm::vec2(cellSize, cellSize),
+			glm::vec2(1.0f) * (cellSize * sideLength),
+			*pos,
+			glm::vec2(1.0f) * halfSize))
+		{
+			//std::cout << "Outta bounds!" << std::endl;
+			*pos = glm::vec3(next, 0.0f);
+		}
+
+
 
 		int xCell = pos->x / cellSize;
 		int yCell = pos->y / cellSize;
-
 		int cellIndex = xCell + sideLength * yCell;
 
 		/*if (cellIndex >= cells->size())

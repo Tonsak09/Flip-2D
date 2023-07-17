@@ -490,13 +490,69 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues)
 		Cell cellNext = (*nextValues)[cellIndex];
 		Cell cellOld = cells[cellIndex];
 
-		glm::vec2 next = GetCellVel(cellNext);
-		glm::vec2 old = GetCellVel(cellOld);
-		glm::vec2 changeInGridVel = next - old;
+		//glm::vec2 next = GetCellVel(cellNext);
+		//glm::vec2 old = GetCellVel(cellOld);
+		//glm::vec2 changeInGridVel = next - old;
 
-		current->vel += glm::vec3(changeInGridVel, 0.0f) / 100.0f;
+
+
+		float deltaX = glm::abs(xCell * cellSize - particlePos.x);
+		float deltaY = glm::abs(yCell * cellSize - particlePos.y);
+
+
+		float w1 = (1.0f - deltaX / cellSize) * (1.0f - deltaY / cellSize);
+		float w2 = deltaX / cellSize * (1 - deltaY / cellSize);
+		float w3 = deltaX / cellSize * (deltaY / cellSize);
+		float w4 = (1 - deltaX / cellSize) * (deltaY / cellSize);
+
+
+		// Weights for how much each corner is affected by particle
+		/*float w1 = (1.0f - xCell) * (1.0f - yCell);
+		float w2 = xCell * (1 - yCell);
+		float w3 = xCell * yCell;
+		float w4 = (1 - xCell) * yCell;*/
+
+		float denomenator = 0.0f;
+
+		float xComp = 0.0f;
+		float yComp = 0.0f;
+
+		// Add corner points 
+		if (cellOld.q1 != nullptr)
+		{
+			xComp += w1 * (*cellNext.q1 - *cellOld.q1);
+			denomenator += w1;
+		}
+
+		if (cellOld.q2 != nullptr)
+		{
+			xComp += w2 * (*cellNext.q2 - *cellOld.q2);
+			denomenator += w2;
+		}
+
+		if (cellOld.q3 != nullptr)
+		{
+			yComp += w3 * (*cellNext.q3 - *cellOld.q3);
+			denomenator += w3;
+		}
+
+		if (cellOld.q4 != nullptr)
+		{
+			yComp += w4 * (*cellNext.q4 - *cellOld.q4);
+			denomenator += w4;
+		}
+
+		current->vel += glm::vec3(xComp, yComp, 0.0f) / denomenator;
 
 		cells = *nextValues;
+
+
+
+
+
+
+		//current->vel += glm::vec3(changeInGridVel, 0.0f);
+
 	}
 }
 
@@ -542,6 +598,6 @@ void Fluid::SimulateFlip()
 
 
 	TransferToVelField(&nextValues);
-	MakeIncompressible(&nextValues, 7, 1.0f);
+	MakeIncompressible(&nextValues, 7, 1.5f);
 	AddChangeToParticles(&nextValues);
 }
