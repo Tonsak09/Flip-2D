@@ -213,6 +213,8 @@ public:
 	Entity GetEntity(int index);
 	glm::mat4 GetModel(int index);
 
+	Cell* PosToCell(glm::vec2 pos, float trueCellSize);
+
 	void SimulateParticles(float timeStep);
 	void SimulateFlip();
 

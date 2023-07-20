@@ -165,6 +165,25 @@ Entity Fluid::GetEntity(int index)
 }
 
 /// <summary>
+/// Get what cell this world position is in if possible
+/// </summary>
+/// <returns>Address to cell or nullptr</returns>
+Cell* Fluid::PosToCell(glm::vec2 pos, float trueCellSize)
+{
+	// Get the index of cell this particle is in 
+	int xCell = pos.y / trueCellSize;
+	int yCell = pos.x / trueCellSize;
+
+
+	int cellIndex = xCell + sideLength * yCell;
+
+	if (cellIndex >= cells.size())
+		return nullptr;
+
+	return &cells[cellIndex];
+}
+
+/// <summary>
 /// Get the cells position pixel coordinates based on the given indicies
 /// </summary>
 /// <returns></returns>
@@ -543,17 +562,14 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues)
 		}
 
 		current->vel += glm::vec3(xComp, yComp, 0.0f) / denomenator;
-
-		cells = *nextValues;
-
-
-
-
-
-
 		//current->vel += glm::vec3(changeInGridVel, 0.0f);
 
+		// DELETE *****************************************************************************************************************
+		 cells = *nextValues;
 	}
+
+	//cells = *nextValues;
+
 }
 
 void Fluid::SimulateFlip()
@@ -598,6 +614,6 @@ void Fluid::SimulateFlip()
 
 
 	TransferToVelField(&nextValues);
-	MakeIncompressible(&nextValues, 7, 1.5f);
+	MakeIncompressible(&nextValues, 7, 1.0f);
 	AddChangeToParticles(&nextValues);
 }

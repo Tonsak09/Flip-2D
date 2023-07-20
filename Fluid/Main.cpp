@@ -50,10 +50,55 @@ void PrintVec3(glm::vec3 vector)
     std::cout << vector.x << ", " << vector.y << ", " << vector.z << std::endl;
 }
 
+void PrintVec2(glm::vec2 vector)
+{
+    std::cout << vector.x << ", " << vector.y << std::endl;
+}
+
+void CorrectParticlePos(Particle* particle, float trueCellSize, Fluid* fluid)
+{
+    Cell* cell = fluid->PosToCell(*particle->pos, trueCellSize);
+
+    if (cell == nullptr)
+        return;
+
+    if (cell->isSolid == false)
+        return;
+
+    
+    // Either horizontal side or vertical side 
+    bool adjustOnX = cell->xIndex == 0;
+
+    glm::vec2 nextPos =
+        CorrectPosIfColliding(
+            glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize),
+            glm::vec2(1.0f) * trueCellSize,
+            *particle->pos,
+            glm::vec2(1.0f) * particle->GetHalfSize(),
+            adjustOnX);
+
+
+    // Set new position 
+    *particle->pos = glm::vec3(nextPos, 0.0f);
+    //PrintVec2(nextPos);
+    // Correct velocity 
+    if (adjustOnX)
+    {
+        //particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
+
+    }
+    else
+    {
+        //particle->SetVel(glm::vec3(particle->vel.x, 0.0f, 0.0f));
+
+    }
+
+}
+
 /// <summary>
-/// Renderers each particle
+/// Logic that applies to each particle 
 /// </summary>
-void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, Fluid& fluid, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib)
+void ParticleLogic(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, Fluid& fluid, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, float trueCellSize)
 {
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
     {
@@ -64,11 +109,14 @@ void RenderParticles(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view,
 
         shader.SetUniformMat4f("u_MVP", mvp);
         renderer.Draw(va, ib, shader);
+
+        Particle* p = fluid.GetParticle(i);
+        CorrectParticlePos(p, trueCellSize, &fluid);
     }
 }
 
 /// <summary>
-/// Renders the grid the particles are organized on 
+/// Logic that applies to each cell in the grid 
 /// </summary>
 void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, const int& PARTICLECOUNT, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
 {
@@ -115,9 +163,17 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         // Scale 
         model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
 
+        // Brute force collision checking 
+        //for (unsigned int p = 0; p < PARTICLECOUNT; p++)
+        //{
+        //    //std::cout << (fluid.PosToCell(*fluid.GetParticle(p)->pos) == current) << std::endl;
+        //    if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*fluid.GetParticle(p)).pos, glm::vec2(1.0f) * (*fluid.GetParticle(p)).GetHalfSize()))
+        //    {
+        //        CorrectParticlePos(fluid.GetParticle(p), trueCellSize,&fluid);
+        //    }
+        //}
 
-
-
+        /*
         // Go through to see if colliding
         for (unsigned int p = 0; p < PARTICLECOUNT; p++)
         {
@@ -150,7 +206,6 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
                     if (adjustOnX)
                     {
                         particleCurrent->SetVel(glm::vec3(0.0f, particleCurrent->vel.y, 0.0f));
-
                     }
                     else
                     {
@@ -162,8 +217,10 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
                 break;
             }
         }
+        */
 
 
+        // Render Grid 
         glm::mat4 mvp = proj * view * model;
         shader.Bind();
 
@@ -325,7 +382,7 @@ int main(void)
         }
 
         // Apply individual entity indicies to main vector 
-        for (unsigned int j = 0; j < indiciesCount; j++)
+        for (unsigned int j = 0; j < indiciesCount / PARTICLECOUNT; j++)
         {
             indicies.push_back(INDICIES[j] + (i * 4));
         }
@@ -405,7 +462,9 @@ int main(void)
 
             // Rendering the particle
             SetColor(shader, PARTICLECOLOR);
-            RenderParticles(PARTICLECOUNT, proj, view, fluid, shader, renderer, va, ib);
+
+            float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
+            ParticleLogic(PARTICLECOUNT, proj, view, fluid, shader, renderer, va, ib, trueCellSize);
             
             #pragma region GUI
             // gui
@@ -432,8 +491,6 @@ int main(void)
             ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
             #pragma endregion
 
-
-            //PrintVec3((fluid.GetParticle(0)->vel));
 
             fluid.SimulateParticles(TIMESTEP );
             fluid.SimulateFlip();
