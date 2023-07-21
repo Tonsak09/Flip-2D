@@ -55,45 +55,45 @@ void PrintVec2(glm::vec2 vector)
     std::cout << vector.x << ", " << vector.y << std::endl;
 }
 
-void CorrectParticlePos(Particle* particle, float trueCellSize, Fluid* fluid)
-{
-    Cell* cell = fluid->PosToCell(*particle->pos, trueCellSize);
-
-    if (cell == nullptr)
-        return;
-
-    if (cell->isSolid == false)
-        return;
-
-    
-    // Either horizontal side or vertical side 
-    bool adjustOnX = cell->xIndex == 0;
-
-    glm::vec2 nextPos =
-        CorrectPosIfColliding(
-            glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize),
-            glm::vec2(1.0f) * trueCellSize,
-            *particle->pos,
-            glm::vec2(1.0f) * particle->GetHalfSize(),
-            adjustOnX);
-
-
-    // Set new position 
-    *particle->pos = glm::vec3(nextPos, 0.0f);
-    //PrintVec2(nextPos);
-    // Correct velocity 
-    if (adjustOnX)
-    {
-        //particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
-
-    }
-    else
-    {
-        //particle->SetVel(glm::vec3(particle->vel.x, 0.0f, 0.0f));
-
-    }
-
-}
+//void CorrectParticlePos(Particle* particle, float trueCellSize, Fluid* fluid)
+//{
+//    Cell* cell = fluid->PosToCell(*particle->pos, trueCellSize);
+//
+//    if (cell == nullptr)
+//        return;
+//
+//    if (cell->isSolid == false)
+//        return;
+//
+//    
+//    // Either horizontal side or vertical side 
+//    bool adjustOnX = cell->xIndex == 0;
+//
+//    glm::vec2 nextPos =
+//        CorrectPosIfColliding(
+//            glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize),
+//            glm::vec2(1.0f) * trueCellSize,
+//            *particle->pos,
+//            glm::vec2(1.0f) * particle->GetHalfSize(),
+//            adjustOnX);
+//
+//
+//    // Set new position 
+//    *particle->pos = glm::vec3(nextPos, 0.0f);
+//    //PrintVec2(nextPos);
+//    // Correct velocity 
+//    if (adjustOnX)
+//    {
+//        //particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
+//
+//    }
+//    else
+//    {
+//        //particle->SetVel(glm::vec3(particle->vel.x, 0.0f, 0.0f));
+//
+//    }
+//
+//}
 
 /// <summary>
 /// Logic that applies to each particle 
@@ -110,8 +110,8 @@ void ParticleLogic(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, F
         shader.SetUniformMat4f("u_MVP", mvp);
         renderer.Draw(va, ib, shader);
 
-        Particle* p = fluid.GetParticle(i);
-        CorrectParticlePos(p, trueCellSize, &fluid);
+        //Particle* p = fluid.GetParticle(i);
+        //fluid.CorrectParticlePos(p, trueCellSize);
     }
 }
 
@@ -302,6 +302,7 @@ int main(void)
     const float CELLVISUALSCALAR = 1.0f;
 
     const float TIMESTEP = 0.03f;
+    const int MAXPARTICLECHECKS = 20;
 
     const glm::vec3 STARTOFFSET = glm::vec3(150.0f, 150.0f, 0.0f);
     const float STARTRADIUS = 200.0f;
@@ -492,7 +493,7 @@ int main(void)
             #pragma endregion
 
 
-            fluid.SimulateParticles(TIMESTEP );
+            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS);
             fluid.SimulateFlip();
 
 

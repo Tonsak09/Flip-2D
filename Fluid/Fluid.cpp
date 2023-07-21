@@ -233,17 +233,119 @@ std::vector<Cell> Fluid::GetCells()
 	return cells;
 }
 
+void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize)
+{
+	Cell* cell = PosToCell(*particle->pos, trueCellSize);
+
+	if (cell == nullptr)
+		return;
+
+	if (cell->isSolid == false)
+		return;
+
+
+	// Either horizontal side or vertical side 
+	bool adjustOnX = cell->xIndex == 0;
+
+	glm::vec2 nextPos =
+		CorrectPosIfColliding(
+			glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize),
+			glm::vec2(1.0f) * trueCellSize,
+			*particle->pos,
+			glm::vec2(1.0f) * particle->GetHalfSize(),
+			adjustOnX);
+
+
+	// Set new position 
+	*particle->pos = glm::vec3(nextPos, 0.0f);
+	//PrintVec2(nextPos);
+	// Correct velocity 
+	if (adjustOnX)
+	{
+		//particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
+	}
+	else
+	{
+		//particle->SetVel(glm::vec3(particle->vel.x, 0.0f, 0.0f));
+	}
+}
+
 /// <summary>
-/// Move the particles based on their velocity 
+/// Move the particles based on their velocity
+/// Also makes sure that particles stay within bounds 
 /// </summary>
-void Fluid::SimulateParticles(float timeStep)
+void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 {
 	for (unsigned int i = 0; i < particles.size(); i++)
 	{
 		Particle *current = &particles[i];
 		
 		(*current).vel += glm::vec3(0.0f, 1.0f, 0.0f) * gravity * timeStep;
-		(*current).MoveByVel(timeStep, cellSize, sideLength, &cells);
+
+		// Set up start and end of move 
+		glm::vec2 start = glm::vec2(current->pos->x, current->pos->y);
+		glm::vec2 next = *current->pos + current->vel * timeStep;
+
+
+		// Check if final range is within zone
+		// If final pos is within zone simply move there 
+
+		// Check if the end position is within bounds 
+		if (IsIntersectingRect(
+			glm::vec2(cellSize, cellSize),
+			glm::vec2(1.0f) * (cellSize * sideLength),
+			*current->pos,
+			glm::vec2(1.0f) * current->GetHalfSize()))
+		{
+			*current->pos = glm::vec3(next, 0.0f);
+			std::cout << "Wtihin zone" << std::endl;
+			continue;
+		}
+
+
+		// Continue if end position is out of zone 
+		// We now need to find out where the intersection occurs 
+
+		// Direction of move 
+		glm::vec2 dir = glm::normalize(next - start);
+		// Distance per step 
+		float dis = glm::length(next - start) / maxParticleChecks;
+
+		glm::vec2 currentCheck = start + (dir * dis);
+
+		// Do several checks along path to make sure particle does not hit obj
+		for (unsigned int c = 0; c < maxParticleChecks; c++)
+		{
+			Cell* cell = PosToCell(currentCheck, cellSize);
+			//std::cout << currentCheck.x << ", " << currentCheck.y << std::endl;
+
+			/*if (cell == nullptr)
+			{
+				// Gone to far
+				// We do know that the location is in between now 
+
+				// Check inbetween previous checks 
+				int remainingChecks = maxParticleChecks - c;
+				float minorDis = glm::length(currentCheck - start) / remainingChecks;
+
+				for (unsigned int n = 0; n < remainingChecks; n++)
+				{
+					currentCheck = 
+				}
+			}*/
+
+			if (cell == nullptr || cell->isSolid)
+			{
+				// Do correction 
+				*current->pos = glm::vec3(currentCheck, 0.0f);
+				CorrectParticlePos(current, cellSize);
+
+				break;
+			}
+
+			// Update check
+			glm::vec2 currentCheck = currentCheck + (dir * dis);
+		}
 	}
 }
 
@@ -565,7 +667,7 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues)
 		//current->vel += glm::vec3(changeInGridVel, 0.0f);
 
 		// DELETE *****************************************************************************************************************
-		 cells = *nextValues;
+		cells = *nextValues;
 	}
 
 	//cells = *nextValues;

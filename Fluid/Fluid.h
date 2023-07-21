@@ -118,12 +118,17 @@ public:
 	/// Updates the particles position based on its velocity 
 	/// </summary>
 	/// <param name="timeStep"></param>
-	void MoveByVel(float timeStep, float cellSize, int sideLength, std::vector<Cell>* cells)
+	void MoveByVel(float timeStep, float cellSize, int sideLength)
 	{
 		//*pos += vel * timeStep;
 
-
+		// The end of the path 
+		glm::vec2 start = glm::vec2(pos->x, pos->y);
 		glm::vec2 next = *pos + vel * timeStep;
+
+		// SAFETY THAT IS EVENTUALLY TO BE MOVED 
+
+		// Freeze position if out of bounds 
 		if (IsIntersectingRect(
 			glm::vec2(cellSize, cellSize),
 			glm::vec2(1.0f) * (cellSize * sideLength),
@@ -133,27 +138,6 @@ public:
 			//std::cout << "Outta bounds!" << std::endl;
 			*pos = glm::vec3(next, 0.0f);
 		}
-
-
-
-		int xCell = pos->x / cellSize;
-		int yCell = pos->y / cellSize;
-		int cellIndex = xCell + sideLength * yCell;
-
-		/*if (cellIndex >= cells->size())
-			return;
-
-		Cell cell = (*cells)[cellIndex];
-		if (cell.isSolid)
-		{
-			CorrectPosIfColliding(
-				glm::vec2(xCell * cellSize, yCell * cellSize),
-				glm::vec2(1.0f) * cellSize,
-				*pos,
-				glm::vec2(1.0f) * halfSize,
-				cell.pushDir != Cell::XAxis
-				);
-		}*/
 	}
 
 	/// <summary>
@@ -208,6 +192,7 @@ public:
 	~Fluid();
 
 	void SetParticlePosition(unsigned int index, glm::vec3 pos);
+	void CorrectParticlePos(Particle* particle, float trueCellSize);
 
 	Particle* GetParticle(int index);
 	Entity GetEntity(int index);
@@ -215,7 +200,7 @@ public:
 
 	Cell* PosToCell(glm::vec2 pos, float trueCellSize);
 
-	void SimulateParticles(float timeStep);
+	void SimulateParticles(float timeStep, int maxParticleChecks);
 	void SimulateFlip();
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
