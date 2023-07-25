@@ -293,7 +293,7 @@ int main(void)
     const int WIDTH = 960;
     const int HEIGHT = 540;
 
-    const int PARTICLECOUNT = 100;
+    const int PARTICLECOUNT = 1000;
     const float STANDARDSIZE = 10.0f;
 
     const int GRIDSIZECOUNT = 20;
@@ -302,7 +302,7 @@ int main(void)
     const float CELLVISUALSCALAR = 1.0f;
 
     const float TIMESTEP = 0.03f;
-    const int MAXPARTICLECHECKS = 20;
+    const int MAXPARTICLECHECKS = 3;
 
     const glm::vec3 STARTOFFSET = glm::vec3(150.0f, 150.0f, 0.0f);
     const float STARTRADIUS = 200.0f;
@@ -494,7 +494,7 @@ int main(void)
 
 
             fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS);
-            fluid.SimulateFlip();
+            fluid.SimulateFlip(TIMESTEP);
 
 
             /* Swap front and back buffers */

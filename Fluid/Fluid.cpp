@@ -255,11 +255,11 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize)
 			glm::vec2(1.0f) * particle->GetHalfSize(),
 			adjustOnX);
 
-
 	// Set new position 
 	*particle->pos = glm::vec3(nextPos, 0.0f);
 	//PrintVec2(nextPos);
 	// Correct velocity 
+
 	if (adjustOnX)
 	{
 		//particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
@@ -292,13 +292,12 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 
 		// Check if the end position is within bounds 
 		if (IsIntersectingRect(
-			glm::vec2(cellSize, cellSize),
+			glm::vec2(cellSize * 1.5f, cellSize * 1.5f),
 			glm::vec2(1.0f) * (cellSize * sideLength),
-			*current->pos,
+			next,
 			glm::vec2(1.0f) * current->GetHalfSize()))
 		{
 			*current->pos = glm::vec3(next, 0.0f);
-			std::cout << "Wtihin zone" << std::endl;
 			continue;
 		}
 
@@ -311,12 +310,12 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 		// Distance per step 
 		float dis = glm::length(next - start) / maxParticleChecks;
 
-		glm::vec2 currentCheck = start + (dir * dis);
+		glm::vec2 currentCheck = start;
 
 		// Do several checks along path to make sure particle does not hit obj
 		for (unsigned int c = 0; c < maxParticleChecks; c++)
 		{
-			Cell* cell = PosToCell(currentCheck, cellSize);
+			Cell* cell = PosToCell(currentCheck, cellSize); // Try cell below? 
 			//std::cout << currentCheck.x << ", " << currentCheck.y << std::endl;
 
 			/*if (cell == nullptr)
@@ -344,11 +343,10 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 			}
 
 			// Update check
-			glm::vec2 currentCheck = currentCheck + (dir * dis);
+			currentCheck = currentCheck + (dir * dis);
 		}
 	}
 }
-
 
 /// <summary>
 /// Apply the particle velocities to the grid 
@@ -574,28 +572,28 @@ void Fluid::MakeIncompressible(std::vector<Cell>* nextValues, int iterations, fl
 			// Apply incompressibility 
 			if (cell.q1 != nullptr)
 			{
-				*cell.q1 += divergence / s;
+				*cell.q1 += (divergence * !cell.isSolid) / s;
 			}
 
 			if (cell.q2 != nullptr)
 			{
-				*cell.q2 += divergence / s;
+				*cell.q2 += (divergence * !cell.isSolid) / s;
 			}
 
 			if (cell.q3 != nullptr)
 			{
-				*cell.q3 += divergence / s;
+				*cell.q3 += (divergence * !cell.isSolid) / s;
 			}
 
 			if (cell.q4 != nullptr)
 			{
-				*cell.q4 += divergence / s;
+				*cell.q4 += (divergence * !cell.isSolid) / s;
 			}
 		}
 	}
 }
 
-void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues)
+void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep)
 {
 	for (unsigned int i = 0; i < particles.size(); i++)
 	{
@@ -663,18 +661,20 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues)
 			denomenator += w4;
 		}
 
-		current->vel += glm::vec3(xComp, yComp, 0.0f) / denomenator;
+		current->vel += (glm::vec3(
+			isnan(xComp) ? 0.0f : xComp, 
+			isnan(yComp) ? 0.0f : yComp, 
+			0.0f) / denomenator) * timeStep;
 		//current->vel += glm::vec3(changeInGridVel, 0.0f);
 
 		// DELETE *****************************************************************************************************************
-		cells = *nextValues;
+		//cells = *nextValues;
 	}
-
-	//cells = *nextValues;
+	cells = *nextValues;
 
 }
 
-void Fluid::SimulateFlip()
+void Fluid::SimulateFlip(float timeStep)
 {
 	// Simulate the made FLIP calculations 
 	std::vector<Cell> nextValues(cells);
@@ -716,6 +716,6 @@ void Fluid::SimulateFlip()
 
 
 	TransferToVelField(&nextValues);
-	MakeIncompressible(&nextValues, 7, 1.0f);
-	AddChangeToParticles(&nextValues);
+	MakeIncompressible(&nextValues, 7, 1.5f);
+	AddChangeToParticles(&nextValues, timeStep);
 }

@@ -178,7 +178,7 @@ private:
 
 	void TransferToVelField(std::vector<Cell> *nextValues);
 	void MakeIncompressible(std::vector<Cell>* nextValues, int iterations, float overrelaxation);
-	void AddChangeToParticles(std::vector<Cell>* nextValues);
+	void AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep);
 
 
 public:
@@ -201,7 +201,7 @@ public:
 	Cell* PosToCell(glm::vec2 pos, float trueCellSize);
 
 	void SimulateParticles(float timeStep, int maxParticleChecks);
-	void SimulateFlip();
+	void SimulateFlip(float timeStep);
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
 	std::vector<Cell> GetCells();
