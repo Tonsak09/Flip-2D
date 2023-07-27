@@ -135,7 +135,6 @@ public:
 			*pos,
 			glm::vec2(1.0f) * halfSize))
 		{
-			//std::cout << "Outta bounds!" << std::endl;
 			*pos = glm::vec3(next, 0.0f);
 		}
 	}

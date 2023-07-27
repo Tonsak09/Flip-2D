@@ -245,28 +245,58 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize)
 
 
 	// Either horizontal side or vertical side 
-	bool adjustOnX = cell->xIndex == 0;
+	bool adjustOnX = cell->xIndex == 0 || cell->xIndex >= sideLength - 3;
+	glm::vec2 cellPos = glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize);
 
-	glm::vec2 nextPos =
-		CorrectPosIfColliding(
-			glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize),
-			glm::vec2(1.0f) * trueCellSize,
-			*particle->pos,
-			glm::vec2(1.0f) * particle->GetHalfSize(),
-			adjustOnX);
+
+	//glm::vec2 nextPos =
+	//	CorrectPosIfColliding(
+	//		cellPos,
+	//		glm::vec2(1.0f) * trueCellSize,
+	//		*particle->pos,
+	//		glm::vec2(1.0f) * particle->GetHalfSize(),
+	//		adjustOnX,
+	//		adjustOnX ? cellPos.x < particle->pos->x : cellPos.y < particle->pos->y
+	//		);
+
+
+	// Get the size of the grid. Don't correct based on collision cells but just if it goes out of range
+	// on each axis
+
+	float axisLimt = (sideLength - 1) * trueCellSize;
+	std::cout << axisLimt << std::endl;
+
+	// X Check
+	if (particle->pos->x <= trueCellSize)
+	{
+		*particle->pos = glm::vec3(trueCellSize + particle->GetHalfSize(), particle->pos->y, 0.0f);
+	}
+	else if (particle->pos->x >= axisLimt)
+	{
+		*particle->pos = glm::vec3(axisLimt - particle->GetHalfSize(), particle->pos->y, 0.0f);
+	}
+
+	// Y Check
+	if (particle->pos->y <= trueCellSize)
+	{
+		*particle->pos = glm::vec3(particle->pos->x, trueCellSize + particle->GetHalfSize(), 0.0f);
+	}
+	else if (particle->pos->y >= axisLimt)
+	{
+		*particle->pos = glm::vec3(particle->pos->x, axisLimt - particle->GetHalfSize(), 0.0f);
+	}
 
 	// Set new position 
-	*particle->pos = glm::vec3(nextPos, 0.0f);
-	//PrintVec2(nextPos);
-	// Correct velocity 
+	//*particle->pos = glm::vec3(nextPos, 0.0f);
 
+	// Correct velocity 
 	if (adjustOnX)
 	{
-		//particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
+		particle->SetVel(glm::vec3(-particle->vel.x, particle->vel.y, 0.0f));
 	}
 	else
 	{
-		//particle->SetVel(glm::vec3(particle->vel.x, 0.0f, 0.0f));
+		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y, 0.0f));
 	}
 }
 
@@ -291,16 +321,19 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 		// If final pos is within zone simply move there 
 
 		// Check if the end position is within bounds 
-		if (IsIntersectingRect(
+		/*if (IsIntersectingRect(
 			glm::vec2(cellSize * 1.5f, cellSize * 1.5f),
-			glm::vec2(1.0f) * (cellSize * sideLength),
+			glm::vec2(1.0f) * (cellSize * (sideLength - 1)),
 			next,
 			glm::vec2(1.0f) * current->GetHalfSize()))
 		{
 			*current->pos = glm::vec3(next, 0.0f);
 			continue;
-		}
+		}*/
 
+
+		// DELETE
+		*current->pos = glm::vec3(next, 0.0f);
 
 		// Continue if end position is out of zone 
 		// We now need to find out where the intersection occurs 
@@ -332,12 +365,12 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 					currentCheck = 
 				}
 			}*/
-
+			CorrectParticlePos(current, cellSize);
 			if (cell == nullptr || cell->isSolid)
 			{
 				// Do correction 
 				*current->pos = glm::vec3(currentCheck, 0.0f);
-				CorrectParticlePos(current, cellSize);
+				//CorrectParticlePos(current, cellSize);
 
 				break;
 			}
