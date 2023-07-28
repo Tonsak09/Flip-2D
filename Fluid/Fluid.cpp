@@ -233,70 +233,38 @@ std::vector<Cell> Fluid::GetCells()
 	return cells;
 }
 
-void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize)
+void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellWallThickness)
 {
 	Cell* cell = PosToCell(*particle->pos, trueCellSize);
-
-	if (cell == nullptr)
-		return;
-
-	if (cell->isSolid == false)
-		return;
-
-
-	// Either horizontal side or vertical side 
-	bool adjustOnX = cell->xIndex == 0 || cell->xIndex >= sideLength - 3;
-	glm::vec2 cellPos = glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize);
-
-
-	//glm::vec2 nextPos =
-	//	CorrectPosIfColliding(
-	//		cellPos,
-	//		glm::vec2(1.0f) * trueCellSize,
-	//		*particle->pos,
-	//		glm::vec2(1.0f) * particle->GetHalfSize(),
-	//		adjustOnX,
-	//		adjustOnX ? cellPos.x < particle->pos->x : cellPos.y < particle->pos->y
-	//		);
-
 
 	// Get the size of the grid. Don't correct based on collision cells but just if it goes out of range
 	// on each axis
 
-	float axisLimt = (sideLength - 1) * trueCellSize;
-	std::cout << axisLimt << std::endl;
+	float axisLimt = (sideLength - cellWallThickness) * trueCellSize;
+	float axisMin = cellWallThickness * trueCellSize;
 
 	// X Check
-	if (particle->pos->x <= trueCellSize)
+	if (particle->pos->x <= axisMin)
 	{
-		*particle->pos = glm::vec3(trueCellSize + particle->GetHalfSize(), particle->pos->y, 0.0f);
+		*particle->pos = glm::vec3(axisMin + particle->GetHalfSize(), particle->pos->y, 0.0f);
+		particle->SetVel(glm::vec3(-particle->vel.x / 2.0f, particle->vel.y, 0.0f));
 	}
 	else if (particle->pos->x >= axisLimt)
 	{
 		*particle->pos = glm::vec3(axisLimt - particle->GetHalfSize(), particle->pos->y, 0.0f);
+		particle->SetVel(glm::vec3(-particle->vel.x / 2.0f, particle->vel.y, 0.0f));
 	}
 
 	// Y Check
-	if (particle->pos->y <= trueCellSize)
+	if (particle->pos->y <= axisMin)
 	{
-		*particle->pos = glm::vec3(particle->pos->x, trueCellSize + particle->GetHalfSize(), 0.0f);
+		*particle->pos = glm::vec3(particle->pos->x, axisMin + particle->GetHalfSize(), 0.0f);
+		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y / 2.0f, 0.0f));
 	}
 	else if (particle->pos->y >= axisLimt)
 	{
 		*particle->pos = glm::vec3(particle->pos->x, axisLimt - particle->GetHalfSize(), 0.0f);
-	}
-
-	// Set new position 
-	//*particle->pos = glm::vec3(nextPos, 0.0f);
-
-	// Correct velocity 
-	if (adjustOnX)
-	{
-		particle->SetVel(glm::vec3(-particle->vel.x, particle->vel.y, 0.0f));
-	}
-	else
-	{
-		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y, 0.0f));
+		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y / 2.0f, 0.0f));
 	}
 }
 
@@ -304,7 +272,7 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize)
 /// Move the particles based on their velocity
 /// Also makes sure that particles stay within bounds 
 /// </summary>
-void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
+void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness)
 {
 	for (unsigned int i = 0; i < particles.size(); i++)
 	{
@@ -316,68 +284,9 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 		glm::vec2 start = glm::vec2(current->pos->x, current->pos->y);
 		glm::vec2 next = *current->pos + current->vel * timeStep;
 
-
-		// Check if final range is within zone
-		// If final pos is within zone simply move there 
-
-		// Check if the end position is within bounds 
-		/*if (IsIntersectingRect(
-			glm::vec2(cellSize * 1.5f, cellSize * 1.5f),
-			glm::vec2(1.0f) * (cellSize * (sideLength - 1)),
-			next,
-			glm::vec2(1.0f) * current->GetHalfSize()))
-		{
-			*current->pos = glm::vec3(next, 0.0f);
-			continue;
-		}*/
-
-
-		// DELETE
+		// Change pos and make correction if necessary 
 		*current->pos = glm::vec3(next, 0.0f);
-
-		// Continue if end position is out of zone 
-		// We now need to find out where the intersection occurs 
-
-		// Direction of move 
-		glm::vec2 dir = glm::normalize(next - start);
-		// Distance per step 
-		float dis = glm::length(next - start) / maxParticleChecks;
-
-		glm::vec2 currentCheck = start;
-
-		// Do several checks along path to make sure particle does not hit obj
-		for (unsigned int c = 0; c < maxParticleChecks; c++)
-		{
-			Cell* cell = PosToCell(currentCheck, cellSize); // Try cell below? 
-			//std::cout << currentCheck.x << ", " << currentCheck.y << std::endl;
-
-			/*if (cell == nullptr)
-			{
-				// Gone to far
-				// We do know that the location is in between now 
-
-				// Check inbetween previous checks 
-				int remainingChecks = maxParticleChecks - c;
-				float minorDis = glm::length(currentCheck - start) / remainingChecks;
-
-				for (unsigned int n = 0; n < remainingChecks; n++)
-				{
-					currentCheck = 
-				}
-			}*/
-			CorrectParticlePos(current, cellSize);
-			if (cell == nullptr || cell->isSolid)
-			{
-				// Do correction 
-				*current->pos = glm::vec3(currentCheck, 0.0f);
-				//CorrectParticlePos(current, cellSize);
-
-				break;
-			}
-
-			// Update check
-			currentCheck = currentCheck + (dir * dis);
-		}
+		CorrectParticlePos(current, cellSize, cellWallThickness);
 	}
 }
 
@@ -386,66 +295,6 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks)
 /// </summary>
 void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 {
-	// Calculate qp for each particle using previous corner values 
-	for (unsigned int i = 0; i < particles.size(); i++)
-	{
-		Particle* current = &particles[i];
-
-		// Grid offset 
-		glm::vec2 particlePos = glm::vec2((*(current->pos)).x, (*(current->pos)).y - (cellSize / 2.0f));
-
-
-		// Get the index of cell this particle is in 
-		int xCell = particlePos.x / cellSize;
-		int yCell = particlePos.y / cellSize;
-
-		int cellIndex = xCell + sideLength * yCell;
-
-		if (cellIndex >= nextValues->size())
-			continue;
-
-		Cell cell = (*nextValues)[cellIndex];
-
-		// Distance from edges 
-		float deltaX = particlePos.x - cellSize;
-		float deltaY = particlePos.y - cellSize;
-
-		// Weights for how much each corner is affected by particle
-		/*float w1 = (1.0f - xCell) * (1.0f - yCell);
-		float w2 = xCell * (1 - yCell);
-		float w3 = xCell * yCell;
-		float w4 = (1 - xCell) * yCell;
-
-		float numerator = 0.0f;
-		float denomenator = 0.0f;*/
-
-		// Add corner points 
-		/*if (cell.q1 != nullptr)
-		{
-			numerator += w1 * *cell.q1;
-			denomenator += w1;
-		}
-
-		if (cell.q2 != nullptr)
-		{
-			numerator += w2 * *cell.q2;
-			denomenator += w2;
-		}
-
-		if (cell.q3 != nullptr)
-		{
-			numerator += w3 * *cell.q3;
-			denomenator += w3;
-		}
-
-		if (cell.q4 != nullptr)
-		{
-			numerator += w4 * *cell.q4;
-			denomenator += w4;
-		}
-		current->qp = numerator / denomenator;*/
-	}
-
 	// Reset all cells 
 	for (unsigned int i = 0; i < nextValues->size(); i++)
 	{
@@ -535,13 +384,6 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 			*cell.r4 += w4;
 		}
 	}
-
-
-	// Apply for final change of weights 
-	/*for (unsigned int i = 0; i < qValues.size(); i++)
-	{
-		*qValues[i] = *qValues[i] / *rValues[i];
-	}*/
 
 	for (unsigned int i = 0; i < nextValues->size(); i++)
 	{
@@ -642,27 +484,14 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep)
 		Cell cellNext = (*nextValues)[cellIndex];
 		Cell cellOld = cells[cellIndex];
 
-		//glm::vec2 next = GetCellVel(cellNext);
-		//glm::vec2 old = GetCellVel(cellOld);
-		//glm::vec2 changeInGridVel = next - old;
-
-
-
 		float deltaX = glm::abs(xCell * cellSize - particlePos.x);
 		float deltaY = glm::abs(yCell * cellSize - particlePos.y);
 
-
+		// Weights for how much each corner is affected by particle
 		float w1 = (1.0f - deltaX / cellSize) * (1.0f - deltaY / cellSize);
 		float w2 = deltaX / cellSize * (1 - deltaY / cellSize);
 		float w3 = deltaX / cellSize * (deltaY / cellSize);
 		float w4 = (1 - deltaX / cellSize) * (deltaY / cellSize);
-
-
-		// Weights for how much each corner is affected by particle
-		/*float w1 = (1.0f - xCell) * (1.0f - yCell);
-		float w2 = xCell * (1 - yCell);
-		float w3 = xCell * yCell;
-		float w4 = (1 - xCell) * yCell;*/
 
 		float denomenator = 0.0f;
 
@@ -698,13 +527,9 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep)
 			isnan(xComp) ? 0.0f : xComp, 
 			isnan(yComp) ? 0.0f : yComp, 
 			0.0f) / denomenator) * timeStep;
-		//current->vel += glm::vec3(changeInGridVel, 0.0f);
-
-		// DELETE *****************************************************************************************************************
-		//cells = *nextValues;
 	}
-	cells = *nextValues;
 
+	cells = *nextValues;
 }
 
 void Fluid::SimulateFlip(float timeStep)

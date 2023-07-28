@@ -302,15 +302,17 @@ int main(void)
     const int WIDTH = 960;
     const int HEIGHT = 540;
 
-    const int PARTICLECOUNT = 200;
+    const int PARTICLECOUNT = 500;
     const float STANDARDSIZE = 10.0f;
 
+    const int CELLWALLTHICKNESS = 3;
     const int GRIDSIZECOUNT = 20;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 1.0f;
 
     const float TIMESTEP = 0.03f;
+    const float GRAVITY = -30.0f;
     const int MAXPARTICLECHECKS = 3;
 
     const glm::vec3 STARTOFFSET = glm::vec3(150.0f, 150.0f, 0.0f);
@@ -363,7 +365,7 @@ int main(void)
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(-20.0f, glm::vec3(0.0f, 20.0f, 0.0f), CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
+    Fluid fluid(GRAVITY, glm::vec3(0.0f, 20.0f, 0.0f), CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
 
     // Set starting positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
@@ -502,7 +504,7 @@ int main(void)
             #pragma endregion
 
 
-            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS);
+            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, CELLWALLTHICKNESS);
             fluid.SimulateFlip(TIMESTEP);
 
 

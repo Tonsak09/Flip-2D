@@ -191,7 +191,7 @@ public:
 	~Fluid();
 
 	void SetParticlePosition(unsigned int index, glm::vec3 pos);
-	void CorrectParticlePos(Particle* particle, float trueCellSize);
+	void CorrectParticlePos(Particle* particle, float trueCellSize, int cellWallThickness);
 
 	Particle* GetParticle(int index);
 	Entity GetEntity(int index);
@@ -199,7 +199,7 @@ public:
 
 	Cell* PosToCell(glm::vec2 pos, float trueCellSize);
 
-	void SimulateParticles(float timeStep, int maxParticleChecks);
+	void SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness);
 	void SimulateFlip(float timeStep);
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
