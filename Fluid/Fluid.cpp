@@ -233,9 +233,16 @@ std::vector<Cell> Fluid::GetCells()
 	return cells;
 }
 
+/// <summary>
+/// Used to make sure that the particle is within the bounds 
+/// of the grid and that there is no overlap for the particles 
+/// </summary>
+/// <param name="particle"></param>
+/// <param name="trueCellSize"></param>
+/// <param name="cellWallThickness"></param>
 void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellWallThickness)
 {
-	Cell* cell = PosToCell(*particle->pos, trueCellSize);
+	// Keep particle in bounds  
 
 	// Get the size of the grid. Don't correct based on collision cells but just if it goes out of range
 	// on each axis
@@ -266,6 +273,27 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 		*particle->pos = glm::vec3(particle->pos->x, axisLimt - particle->GetHalfSize(), 0.0f);
 		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y / 2.0f, 0.0f));
 	}
+
+
+
+
+	// Particle update parent 
+
+	Cell* cell = PosToCell(*particle->pos, trueCellSize);
+	if (!cell->ContainsParticle(particle))
+	{
+		// FIND OLD CELL BASED ON X AND Y INDEX 
+		Cell* oldCell = PosToCell((cellSize + 0.5f) * particle->parentIndex, cellSize);
+
+		// ADD CURRENT PARTICLE TO NEW CELL PARENT 
+		cell->AddParticle(particle);
+
+		if (oldCell != nullptr)
+		{
+			// REMOVE CURRENT PARTICLE FROM THAT CELLS LIST 
+			oldCell->RemoveParticle(particle);
+		}
+	}
 }
 
 /// <summary>
@@ -287,6 +315,61 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 		// Change pos and make correction if necessary 
 		*current->pos = glm::vec3(next, 0.0f);
 		CorrectParticlePos(current, cellSize, cellWallThickness);
+	}
+
+	// I know the below code is horrifying to look at but having it split with
+	// multiple cells helps optimize it like a quad tree 
+
+	// GO THROUGH EACH CELL AND SEPERATE PARTICLES 
+	for (unsigned c = 0; c < maxParticleChecks; c++)
+	{
+		for (unsigned int i = 0; i < cells.size(); i++)
+		{
+			Cell* cell = &cells[i];
+			int particleCount = cell->GetParticleCount();
+			for (unsigned int a = 0; a < particleCount; a++)
+			{
+				Particle* childA = cell->GetParticle(a);
+
+				// Safety 
+				if (childA == nullptr)
+					continue;
+
+				for (unsigned int b = 0; b < particleCount; b++)
+				{
+					Particle* childB = cell->GetParticle(b);
+
+					// Safety 
+					if (childB == nullptr)
+						continue;
+
+					// Find center and split both particles
+					// an equal distance away from it 
+
+					glm::vec3 center = (*childA->pos + *childB->pos) / 2.0f;
+					glm::vec3 dir = (*childA->pos - *childB->pos);
+					float length = glm::length(dir);
+					
+					if (length == 0)
+					{
+						dir = glm::vec3(((double)rand() / (RAND_MAX)), ((double)rand() / (RAND_MAX)), 0.0f);
+						length = glm::length(dir);
+					}
+					//*childA->pos = center + dir;
+
+					std::cout << (center - (dir * childA->GetHalfSize())).x << std::endl;
+
+					/*if (childA->GetHalfSize() == 0.0f)
+					{
+						std::cout << "Pos" << std::endl;
+					}*/
+
+					// Apply change 
+					//*childA->pos = center - (dir * childA->GetHalfSize());
+					//*childB->pos = center + (dir * childB->GetHalfSize());
+				}
+			}
+		}
 	}
 }
 

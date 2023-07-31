@@ -134,24 +134,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
 
         if ((*current).isSolid)
         {
-            // x Edge
-            if (x == 0 || x == GRIDSIZECOUNT - 1)
-            {
-                SetColor(shader, SOLIDCELLCOLOR);
-            }
-            else
-            {
-                SetColor(shader, FLUIDCELLCOLOR);
-            }
-            //if (current->pushDir == Cell::XAxis)
-            //{
-            //    //SetColor(shader, SOLIDCELLCOLOR);
-            //    
-            //}
-            //else
-            //{
-            //    SetColor(shader, FLUIDCELLCOLOR);
-            //}
+            SetColor(shader, SOLIDCELLCOLOR);
         }
         else
         {
@@ -305,7 +288,7 @@ int main(void)
     const int PARTICLECOUNT = 500;
     const float STANDARDSIZE = 10.0f;
 
-    const int CELLWALLTHICKNESS = 3;
+    const int CELLWALLTHICKNESS = 2;
     const int GRIDSIZECOUNT = 20;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;

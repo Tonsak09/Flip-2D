@@ -7,58 +7,6 @@
 
 #include "Collision.h"
 
-struct Cell
-{
-	// Shared corners between cells 
-	float* q1;
-	float* q2;
-	float* q3;
-	float* q4;
-
-	float* r1;
-	float* r2;
-	float* r3;
-	float* r4;
-
-
-	float halfSize;
-	bool isSolid;
-
-	int xIndex;
-	int yIndex;
-
-	/// <summary>
-	/// In what direction should particles be moved
-	/// </summary>
-	enum PushDirections
-	{
-		None = 0,
-		XAxis = 1,
-		YAxis = 1
-	};
-	PushDirections pushDir;
-
-	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid,
-		float* _q1, float* _q2, float* _q3, float* _q4,
-		float* _r1, float* _r2, float* _r3, float* _r4,
-		Cell::PushDirections _pushDirection)
-		: xIndex(_xIndex), yIndex(_yIndex), halfSize(_halfSize), isSolid(_isSolid)
-	{
-		pushDir = _pushDirection;
-
-		q1 = _q1;
-		q2 = _q2;
-		q3 = _q3;
-		q4 = _q4;
-
-		r1 = _r1;
-		r2 = _r2;
-		r3 = _r3;
-		r4 = _r4;
-	}
-
-};
-
 struct Particle
 {
 
@@ -66,6 +14,8 @@ private:
 	float halfSize;
 
 public:
+	glm::vec2 parentIndex; 
+
 	unsigned int index;
 	float qp;
 
@@ -112,6 +62,8 @@ public:
 		{
 			positions[i] = posTemp[i];
 		}
+
+		parentIndex = glm::vec2(-1, -1);
 	}
 
 	/// <summary>
@@ -153,6 +105,132 @@ public:
 	}
 };
  
+struct Cell
+{
+private:
+	std::vector<Particle*> particles;
+
+public:
+	// Shared corners between cells 
+	float* q1;
+	float* q2;
+	float* q3;
+	float* q4;
+
+	float* r1;
+	float* r2;
+	float* r3;
+	float* r4;
+
+
+	float halfSize;
+	bool isSolid;
+
+	int xIndex;
+	int yIndex;
+
+	/// <summary>
+	/// In what direction should particles be moved
+	/// </summary>
+	enum PushDirections
+	{
+		None = 0,
+		XAxis = 1,
+		YAxis = 1
+	};
+	PushDirections pushDir;
+
+	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid,
+		float* _q1, float* _q2, float* _q3, float* _q4,
+		float* _r1, float* _r2, float* _r3, float* _r4,
+		Cell::PushDirections _pushDirection)
+		: xIndex(_xIndex), yIndex(_yIndex), halfSize(_halfSize), isSolid(_isSolid)
+	{
+		pushDir = _pushDirection;
+
+		q1 = _q1;
+		q2 = _q2;
+		q3 = _q3;
+		q4 = _q4;
+
+		r1 = _r1;
+		r2 = _r2;
+		r3 = _r3;
+		r4 = _r4;
+
+		particles = std::vector<Particle*>();
+	}
+
+	/// <summary>
+	/// Get how many particles currently exist in this cell
+	/// </summary>
+	/// <returns></returns>
+	int GetParticleCount()
+	{
+		return particles.size();
+	}
+
+	/// <summary>
+	/// Check if this cell already contains the given particle
+	/// </summary>
+	/// <returns></returns>
+	bool ContainsParticle(Particle* particle)
+	{
+		for (unsigned int i = 0; i < particles.size(); i++)
+		{
+			if (particles[i] == particle)
+			{
+				// Was found 
+				return true;
+			}
+		}
+
+		// Was not found 
+		return false;
+	}
+
+	/// <summary>
+	/// Gets the particle based on index 
+	/// </summary>
+	/// <param name="index"></param>
+	/// <returns></returns>
+	Particle* GetParticle(int index)
+	{
+		if (index < 0 || index >= particles.size())
+		{
+			return nullptr;
+		}
+
+		return particles[index];
+	}
+
+	/// <summary>
+	/// Add a particle reference to this cell 
+	/// </summary>
+	/// <param name="particle"></param>
+	void AddParticle(Particle* particle)
+	{
+		particles.push_back(particle);
+		particle->parentIndex = glm::vec2(xIndex, yIndex);
+	}
+
+	/// <summary>
+	/// Does not consider that particle as one of this cells children 
+	/// </summary>
+	/// <param name="particle"></param>
+	void RemoveParticle(Particle* particle)
+	{
+		for (unsigned int i = 0; i < particles.size(); i++)
+		{
+			if (particles[i] == particle)
+			{
+				particles.erase(particles.begin() + i);
+				break;
+			}
+		}
+	}
+};
+
 class Fluid
 {
 private:
