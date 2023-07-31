@@ -132,7 +132,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         int y = (*current).yIndex;
         
 
-        if ((*current).isSolid)
+        if ((*current).GetParticleCount() > 0)
         {
             SetColor(shader, SOLIDCELLCOLOR);
         }
@@ -289,16 +289,16 @@ int main(void)
     const float STANDARDSIZE = 10.0f;
 
     const int CELLWALLTHICKNESS = 2;
-    const int GRIDSIZECOUNT = 20;
+    const int GRIDSIZECOUNT = 30;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 1.0f;
 
     const float TIMESTEP = 0.03f;
-    const float GRAVITY = -30.0f;
-    const int MAXPARTICLECHECKS = 3;
+    const float GRAVITY = -50.0f;
+    const int MAXPARTICLECHECKS = 1;
 
-    const glm::vec3 STARTOFFSET = glm::vec3(150.0f, 150.0f, 0.0f);
+    const glm::vec3 STARTOFFSET = glm::vec3(190.0f, 100.0f, 0.0f);
     const float STARTRADIUS = 200.0f;
 
     // Useful reference 

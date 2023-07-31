@@ -37,6 +37,11 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 	float* yRLess = nullptr;
 	float* yRMore = nullptr;
 
+	float* xPLess = nullptr;
+	float* xPMore = nullptr;
+	float* yPLess = nullptr;
+	float* yPMore = nullptr;
+
 	// Setup cells
 	for (unsigned int x = 0; x < sideLength; x++)
 	{
@@ -45,6 +50,7 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 		// Previous edge is set
 		xQLess = xQMore;
 		xRLess = xRMore;
+		xPLess = xPMore;
 
 		// Check if next is out of bounds or curent is edge 
 		if (x + 1 >= sideLength - 1)
@@ -52,18 +58,16 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 			// next cell over is null 
 			xQMore = nullptr;
 			xRMore = nullptr;
+			xPMore = nullptr;
 		}
 		else
 		{
 			xQMore = new float(0.0f);
 			xRMore = new float(0.0f);
+			xPMore = new float(0.0f);
 		}
 
-		if (xQMore != nullptr)
-		{
-			qValues.push_back(xQMore);
-			rValues.push_back(xRMore);
-		}
+
 
 
 		// Reset y 
@@ -73,6 +77,9 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 		yRLess = nullptr;
 		yRMore = nullptr;
 
+		yPLess = nullptr;
+		yPMore = nullptr;
+
 		for (unsigned int y = 0; y < sideLength; y++)
 		{
 			bool isYEdge = (y == 0 || y == sideLength - 1);
@@ -81,6 +88,7 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 			// Previous edge is set
 			yQLess = yQMore;
 			yRLess = yRMore;
+			yPLess = yPMore;
 
 
 			// Check if next is out of bounds or curent is edge 
@@ -89,18 +97,15 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 				// next cell over is null 
 				yQMore = nullptr;
 				yRMore = nullptr;
+				yPMore = nullptr;
 			}
 			else
 			{
 				yQMore = new float(0.0f);
 				yRMore = new float(0.0f);
+				yPMore = new float(0.0f);
 			}
 			
-			if (yQMore != nullptr)
-			{
-				qValues.push_back(yQMore);
-				rValues.push_back(yRMore);
-			}
 
 			// Check if on an edge 
 			bool isSolid = isXEdge || isYEdge;
@@ -116,6 +121,7 @@ Fluid::Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLengt
 			cells.push_back(Cell(x, y, _cellSize, isSolid, 
 				xQLess, xQMore, yQLess, yQMore, 
 				xRLess, xRMore, yRLess, yRMore, 
+				xPLess, xPMore, yPLess, yPMore, 
 				pushDir));
 
 		}
@@ -326,6 +332,13 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 		for (unsigned int i = 0; i < cells.size(); i++)
 		{
 			Cell* cell = &cells[i];
+
+			if (cell == nullptr)
+			{
+				std::cout << "Cell does not exist" << std::endl;
+				continue;
+			}
+
 			int particleCount = cell->GetParticleCount();
 			for (unsigned int a = 0; a < particleCount; a++)
 			{
@@ -347,17 +360,22 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 					// an equal distance away from it 
 
 					glm::vec3 center = (*childA->pos + *childB->pos) / 2.0f;
-					glm::vec3 dir = (*childA->pos - *childB->pos);
+					glm::vec3 dir = (*childA->pos - center);
 					float length = glm::length(dir);
 					
+					if (length > 2.5f)
+					{
+						continue;
+					}
+
 					if (length == 0)
 					{
 						dir = glm::vec3(((double)rand() / (RAND_MAX)), ((double)rand() / (RAND_MAX)), 0.0f);
 						length = glm::length(dir);
+						//std::cout << "Rand direction" << std::endl;
 					}
-					//*childA->pos = center + dir;
-
-					std::cout << (center - (dir * childA->GetHalfSize())).x << std::endl;
+					dir /= length;
+					//std::cout << (center - (dir * childA->GetHalfSize())).x << std::endl;
 
 					/*if (childA->GetHalfSize() == 0.0f)
 					{
@@ -365,8 +383,19 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 					}*/
 
 					// Apply change 
-					//*childA->pos = center - (dir * childA->GetHalfSize());
-					//*childB->pos = center + (dir * childB->GetHalfSize());
+					if (childA->pos->y > childB->pos->y)
+					{
+						*childA->pos += glm::vec3(0, 2.5f, 0);
+						*childB->pos -= glm::vec3(0, 2.5f, 0);
+					}
+					else
+					{
+						*childA->pos -= glm::vec3(0, 2.5f, 0);
+						*childB->pos += glm::vec3(0, 2.5f, 0);
+					}
+					
+					//*childB->pos = center - dir * (1.0f);
+					break;
 				}
 			}
 		}
@@ -444,28 +473,47 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 		float w3 = deltaX / cellSize * deltaY / cellSize;
 		float w4 = (1 - deltaX / cellSize) * deltaY / cellSize;
 
-
+		float pSum = 0.0f;
+		int pCount = 0;
 		// Apply velocities to the next grid 
 		if (cell.q1 != nullptr)
 		{
 			*cell.q1 += w1 * current->vel.x;
 			*cell.r1 += w1;
+			*cell.p1 += w1;
+
+			pSum += w1;
+			pCount++;
 		}
 		if (cell.q2 != nullptr)
 		{
 			*cell.q2 += w2 * current->vel.x;
 			*cell.r2 += w2;
+			*cell.p2 += w2;
+
+			pSum += w2;
+			pCount++;
 		}
 		if (cell.q3 != nullptr)
 		{
 			*cell.q3 += w3 * current->vel.y;
 			*cell.r3 += w3;
+			*cell.p3 += w3;
+
+			pSum += w3;
+			pCount++;
 		}
 		if (cell.q4 != nullptr)
 		{
 			*cell.q4 += w4 * current->vel.y;
 			*cell.r4 += w4;
+			*cell.p4 += w4;
+
+			pSum += w4;
+			pCount++;
 		}
+
+		cell.averageP = pSum / pCount;
 	}
 
 	for (unsigned int i = 0; i < nextValues->size(); i++)
@@ -500,32 +548,43 @@ void Fluid::MakeIncompressible(std::vector<Cell>* nextValues, int iterations, fl
 			float divergence = 0.0f; // Used to make incompressible by "spreading" out values 
 			float s = 0.0f; // Accomodate for solid cells 
 
+			float p = 0.0f; // Demsityl 
+
 			// Divergence and s value calculations 
 			if (cell.q1 != nullptr)
 			{
 				divergence += *cell.q1;
 				s += 1;
+
+				p += *cell.p1;
 			}
 
 			if (cell.q2 != nullptr)
 			{
 				divergence -= *cell.q2;
 				s += 1;
+
+				p -= *cell.p2;
 			}
 
 			if (cell.q3 != nullptr)
 			{
 				divergence += *cell.q3;
 				s += 1;
+
+				p += *cell.p3;
 			}
 
 			if (cell.q4 != nullptr)
 			{
 				divergence -= *cell.q4;
 				s += 1;
+
+				p -= *cell.p4;
 			}
 
 			divergence *= overrelaxation;
+			divergence -= 1.0f * (p - cell.averageP);
 
 			// Apply incompressibility 
 			if (cell.q1 != nullptr)
@@ -657,6 +716,6 @@ void Fluid::SimulateFlip(float timeStep)
 
 
 	TransferToVelField(&nextValues);
-	MakeIncompressible(&nextValues, 7, 1.5f);
+	MakeIncompressible(&nextValues, 7, 1.0f);
 	AddChangeToParticles(&nextValues, timeStep);
 }

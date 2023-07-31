@@ -122,6 +122,12 @@ public:
 	float* r3;
 	float* r4;
 
+	float* p1;
+	float* p2;
+	float* p3;
+	float* p4;
+
+	float averageP;
 
 	float halfSize;
 	bool isSolid;
@@ -143,6 +149,7 @@ public:
 	Cell(int _xIndex, int _yIndex, float _halfSize, bool _isSolid,
 		float* _q1, float* _q2, float* _q3, float* _q4,
 		float* _r1, float* _r2, float* _r3, float* _r4,
+		float* _p1, float* _p2, float* _p3, float* _p4,
 		Cell::PushDirections _pushDirection)
 		: xIndex(_xIndex), yIndex(_yIndex), halfSize(_halfSize), isSolid(_isSolid)
 	{
@@ -157,6 +164,11 @@ public:
 		r2 = _r2;
 		r3 = _r3;
 		r4 = _r4;
+
+		p1 = _p1;
+		p2 = _p2;
+		p3 = _p3;
+		p4 = _p4;
 
 		particles = std::vector<Particle*>();
 	}
