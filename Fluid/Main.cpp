@@ -55,6 +55,11 @@ void PrintVec2(glm::vec2 vector)
     std::cout << vector.x << ", " << vector.y << std::endl;
 }
 
+void CurosorPositionCallback(GLFWwindow* window, double xPos, double yPos)
+{
+    //PrintVec2(glm::vec2(xPos, yPos));
+}
+
 /// <summary>
 /// Logic that applies to each particle 
 /// </summary>
@@ -75,21 +80,24 @@ void ParticleLogic(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, F
 /// <summary>
 /// Logic that applies to each cell in the grid 
 /// </summary>
-void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, const int& PARTICLECOUNT, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid)
+void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, const int& PARTICLECOUNT, const float& MOUSERADIUS, glm::vec4& FLUIDCELLCOLOR, glm::vec4& SOLIDCELLCOLOR, glm::vec4& INTERACTCOLOR, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid, glm::vec2 mousePos)
 {
+    std::vector<Cell> cells = fluid.GetCells();
+
+    int cellCount = cells.size();
     float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
 
-    std::vector<Cell> cells = fluid.GetCells();
-    int cellCount = cells.size();
+    //Cell* mouseCell = fluid.PosToCell(mousePos, trueCellSize);
+    //std::cout << mouseCell << std::endl;
 
     for (unsigned int i = 0; i < cellCount; i++)
     {
         Cell* current = &cells[i];
         int x = (*current).xIndex;
         int y = (*current).yIndex;
-        
 
-        if ((*current).GetParticleCount() > 0)
+
+        if (current->GetParticleCount() > 0)
         {
             SetColor(shader, SOLIDCELLCOLOR);
         }
@@ -97,6 +105,12 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         {
             SetColor(shader, FLUIDCELLCOLOR);
         }
+
+        if (glm::distance(fluid.GetCellPos(current->xIndex, current->yIndex), glm::vec3(mousePos, 0.0f)) <= MOUSERADIUS)
+        {
+            SetColor(shader, INTERACTCOLOR);
+        }
+        
 
         // Get the center of a cell by taking into account
             // size and borders 
@@ -123,25 +137,31 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
 
 int main(void)
 {
-    // Variables 
+    // Start screen size  
     const int WIDTH = 960;
     const int HEIGHT = 540;
 
-    const int PARTICLECOUNT = 1000;
+    // Particle
+    const int PARTICLECOUNT = 600;
     const float STANDARDSIZE = 10.0f;
 
+    // Cell Details 
     const int CELLWALLTHICKNESS = 2;
     const int GRIDSIZECOUNT = 30;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 1.0f;
 
+    // Physics
     const float TIMESTEP = 0.03f;
     const float GRAVITY = -50.0f;
     const int MAXPARTICLECHECKS = 1;
 
+    // Spawning 
     const glm::vec3 STARTOFFSET = glm::vec3(190.0f, 100.0f, 0.0f);
     const float STARTRADIUS = 200.0f;
+
+    const float MOUSERADIUS = 40.0f;
 
     // Useful reference 
     const unsigned int INDICIES[6] =
@@ -152,7 +172,8 @@ int main(void)
 
     glm::vec4 FLUIDCELLCOLOR = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
     glm::vec4 SOLIDCELLCOLOR = glm::vec4(0.5f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 PARTICLECOLOR = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 INTERACTCOLOR =  glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+    glm::vec4 PARTICLECOLOR =  glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     // Counts so easier to call 
     int indiciesCount = 6 * PARTICLECOUNT;    // One Entity has 6 indicies 
@@ -163,6 +184,7 @@ int main(void)
 
     #pragma region glfwWindow
     GLFWwindow* window;
+
 
     /* Initialize the library */
     if (!glfwInit())
@@ -187,6 +209,9 @@ int main(void)
 
     glewInit();
     #pragma endregion
+
+    // Set up mouse callback 
+    glfwSetCursorPosCallback(window, CurosorPositionCallback);
 
     #pragma region Rendering&Entity
     
@@ -293,15 +318,26 @@ int main(void)
             /* Render here */
             renderer.Clear();
 
-            // Rendering the grid
+            double x;
+            double y;
+
+            int h;
+
+            glfwGetCursorPos(window, &x, &y);
+            glfwGetWindowSize(window, nullptr, &h);
+
+            glm::vec2 mousePos = glm::vec2(x,  h - y);
+
+            // Rendering the grid and its logic 
             
-            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, FLUIDCELLCOLOR, SOLIDCELLCOLOR, proj, view, shader, renderer, va, ib, fluid);
+            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, MOUSERADIUS, FLUIDCELLCOLOR, SOLIDCELLCOLOR, INTERACTCOLOR, proj, view, shader, renderer, va, ib, fluid, mousePos);
 
             // Rendering the particle
             SetColor(shader, PARTICLECOLOR);
 
             float trueCellSize = CELLSIZE + CELLSPACINGSIZE;
             ParticleLogic(PARTICLECOUNT, proj, view, fluid, shader, renderer, va, ib, trueCellSize);
+
             
             #pragma region GUI
             // gui
