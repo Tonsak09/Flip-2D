@@ -173,6 +173,11 @@ public:
 		particles = std::vector<Particle*>();
 	}
 
+	~Cell()
+	{
+
+	}
+
 	/// <summary>
 	/// Get how many particles currently exist in this cell
 	/// </summary>
@@ -289,7 +294,7 @@ public:
 
 	Cell* PosToCell(glm::vec2 pos, float trueCellSize);
 
-	void SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness);
+	void SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness, glm::vec3 mousePos, const float& MOUSERADIUS);
 	void SimulateFlip(float timeStep);
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);

@@ -203,6 +203,11 @@ glm::vec3 Fluid::GetCellPos(int xIndex, int yIndex)
 	);
 }
 
+/// <summary>
+/// Gets the average velocity of a cell by using each of its corners  
+/// </summary>
+/// <param name="cell"></param>
+/// <returns></returns>
 glm::vec2 Fluid::GetCellVel(Cell cell)
 {
 	float x = 0.0f; 
@@ -256,16 +261,22 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 	float axisLimt = (sideLength - cellWallThickness) * trueCellSize;
 	float axisMin = cellWallThickness * trueCellSize;
 
+	// The following checks have "magic numbers" used to help reduce the speeding up of diagonal
+	// particles. This occurs because at the bottom particles can speed really fast after meeting
+	// with their friends and then reflect in the opposite direction. This keeps happening which 
+	// eventually causes the particles to speed wayyyyy too fast. A better solution would probably
+	// be conserving momentum. 
+
 	// X Check
 	if (particle->pos->x <= axisMin)
 	{
 		*particle->pos = glm::vec3(axisMin + particle->GetHalfSize(), particle->pos->y, 0.0f);
-		particle->SetVel(glm::vec3(-particle->vel.x / 2.0f, particle->vel.y, 0.0f));
+		particle->SetVel(glm::vec3(-particle->vel.x / 2.0f, particle->vel.y / 2.0f, 0.0f));
 	}
 	else if (particle->pos->x >= axisLimt)
 	{
 		*particle->pos = glm::vec3(axisLimt - particle->GetHalfSize(), particle->pos->y, 0.0f);
-		particle->SetVel(glm::vec3(-particle->vel.x / 2.0f, particle->vel.y, 0.0f));
+		particle->SetVel(glm::vec3(-particle->vel.x / 2.0f, particle->vel.y / 2.0f, 0.0f));
 	}
 
 	// Y Check
@@ -277,7 +288,7 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 	else if (particle->pos->y >= axisLimt)
 	{
 		*particle->pos = glm::vec3(particle->pos->x, axisLimt - particle->GetHalfSize(), 0.0f);
-		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y / 2.0f, 0.0f));
+		particle->SetVel(glm::vec3(particle->vel.x / 2.0f, -particle->vel.y / 4.0f, 0.0f));
 	}
 
 
@@ -286,6 +297,13 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 	// Particle update parent 
 
 	Cell* cell = PosToCell(*particle->pos, trueCellSize);
+	if (cell == nullptr)
+	{
+		// Particle might have been pushed out by user 
+		particle->vel = glm::vec3(0);
+		return;
+	}
+
 	if (!cell->ContainsParticle(particle))
 	{
 		// FIND OLD CELL BASED ON X AND Y INDEX 
@@ -306,7 +324,7 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 /// Move the particles based on their velocity
 /// Also makes sure that particles stay within bounds 
 /// </summary>
-void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness)
+void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness, glm::vec3 mousePos, const float& MOUSERADIUS)
 {
 	for (unsigned int i = 0; i < particles.size(); i++)
 	{
@@ -321,6 +339,15 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 		// Change pos and make correction if necessary 
 		*current->pos = glm::vec3(next, 0.0f);
 		CorrectParticlePos(current, cellSize, cellWallThickness);
+
+		// Keep out of mouse radius 
+		if (glm::distance(*current->pos, mousePos) < MOUSERADIUS)
+		{
+			glm::vec3 dir = *current->pos - mousePos;
+			dir /= glm::length(dir);
+
+			*current->pos = mousePos + (dir * MOUSERADIUS);
+		}
 	}
 
 	// I know the below code is horrifying to look at but having it split with
@@ -335,7 +362,7 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 
 			if (cell == nullptr)
 			{
-				std::cout << "Cell does not exist" << std::endl;
+				// Cell does not exist
 				continue;
 			}
 
@@ -372,15 +399,8 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 					{
 						dir = glm::vec3(((double)rand() / (RAND_MAX)), ((double)rand() / (RAND_MAX)), 0.0f);
 						length = glm::length(dir);
-						//std::cout << "Rand direction" << std::endl;
 					}
 					dir /= length;
-					//std::cout << (center - (dir * childA->GetHalfSize())).x << std::endl;
-
-					/*if (childA->GetHalfSize() == 0.0f)
-					{
-						std::cout << "Pos" << std::endl;
-					}*/
 
 					// Apply change 
 					if (childA->pos->y > childB->pos->y)
@@ -394,7 +414,6 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 						*childB->pos += glm::vec3(0, 2.5f, 0);
 					}
 					
-					//*childB->pos = center - dir * (1.0f);
 					break;
 				}
 			}
@@ -464,10 +483,12 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 			continue;
 		}
 		Cell cell = (*nextValues)[cellIndex];
+
+		// Change in distance to cell 
 		float deltaX = glm::abs(xCell * cellSize - particlePos.x);
 		float deltaY = glm::abs(yCell * cellSize - particlePos.y);
 
-
+		// Weights relative to each side 
 		float w1 = (1.0f - deltaX / cellSize) * (1.0f - deltaY / cellSize);
 		float w2 = deltaX / cellSize * (1 - deltaY / cellSize);
 		float w3 = deltaX / cellSize * deltaY / cellSize;
@@ -475,6 +496,7 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 
 		float pSum = 0.0f;
 		int pCount = 0;
+
 		// Apply velocities to the next grid 
 		if (cell.q1 != nullptr)
 		{
@@ -610,6 +632,13 @@ void Fluid::MakeIncompressible(std::vector<Cell>* nextValues, int iterations, fl
 	}
 }
 
+/// <summary>
+/// Gets the difference between the old velocity grid and the new
+/// one and applys that change in velocity to all particles within
+/// each cell 
+/// </summary>
+/// <param name="nextValues"></param>
+/// <param name="timeStep"></param>
 void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep)
 {
 	for (unsigned int i = 0; i < particles.size(); i++)
@@ -671,6 +700,7 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep)
 			0.0f) / denomenator) * timeStep;
 	}
 
+
 	cells = *nextValues;
 }
 
@@ -679,7 +709,7 @@ void Fluid::SimulateFlip(float timeStep)
 	// Simulate the made FLIP calculations 
 	std::vector<Cell> nextValues(cells);
 
-
+	// Create a clone 
 	for (unsigned int i = 0; i < nextValues.size(); i++)
 	{
 		Cell* cell = &(nextValues[i]);
@@ -714,7 +744,7 @@ void Fluid::SimulateFlip(float timeStep)
 		}
 	}
 
-
+	// Run each step in Flip 
 	TransferToVelField(&nextValues);
 	MakeIncompressible(&nextValues, 7, 1.0f);
 	AddChangeToParticles(&nextValues, timeStep);
