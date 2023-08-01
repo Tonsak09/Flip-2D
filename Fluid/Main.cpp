@@ -55,46 +55,6 @@ void PrintVec2(glm::vec2 vector)
     std::cout << vector.x << ", " << vector.y << std::endl;
 }
 
-//void CorrectParticlePos(Particle* particle, float trueCellSize, Fluid* fluid)
-//{
-//    Cell* cell = fluid->PosToCell(*particle->pos, trueCellSize);
-//
-//    if (cell == nullptr)
-//        return;
-//
-//    if (cell->isSolid == false)
-//        return;
-//
-//    
-//    // Either horizontal side or vertical side 
-//    bool adjustOnX = cell->xIndex == 0;
-//
-//    glm::vec2 nextPos =
-//        CorrectPosIfColliding(
-//            glm::vec2(cell->xIndex * trueCellSize, cell->yIndex * trueCellSize),
-//            glm::vec2(1.0f) * trueCellSize,
-//            *particle->pos,
-//            glm::vec2(1.0f) * particle->GetHalfSize(),
-//            adjustOnX);
-//
-//
-//    // Set new position 
-//    *particle->pos = glm::vec3(nextPos, 0.0f);
-//    //PrintVec2(nextPos);
-//    // Correct velocity 
-//    if (adjustOnX)
-//    {
-//        //particle->SetVel(glm::vec3(0.0f, particle->vel.y, 0.0f));
-//
-//    }
-//    else
-//    {
-//        //particle->SetVel(glm::vec3(particle->vel.x, 0.0f, 0.0f));
-//
-//    }
-//
-//}
-
 /// <summary>
 /// Logic that applies to each particle 
 /// </summary>
@@ -109,9 +69,6 @@ void ParticleLogic(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, F
 
         shader.SetUniformMat4f("u_MVP", mvp);
         renderer.Draw(va, ib, shader);
-
-        //Particle* p = fluid.GetParticle(i);
-        //fluid.CorrectParticlePos(p, trueCellSize);
     }
 }
 
@@ -155,63 +112,6 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         // Scale 
         model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
 
-        // Brute force collision checking 
-        //for (unsigned int p = 0; p < PARTICLECOUNT; p++)
-        //{
-        //    //std::cout << (fluid.PosToCell(*fluid.GetParticle(p)->pos) == current) << std::endl;
-        //    if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*fluid.GetParticle(p)).pos, glm::vec2(1.0f) * (*fluid.GetParticle(p)).GetHalfSize()))
-        //    {
-        //        CorrectParticlePos(fluid.GetParticle(p), trueCellSize,&fluid);
-        //    }
-        //}
-
-        /*
-        // Go through to see if colliding
-        for (unsigned int p = 0; p < PARTICLECOUNT; p++)
-        {
-            Particle* particleCurrent = fluid.GetParticle(p);
-            if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*particleCurrent).pos, glm::vec2(1.0f) * (*particleCurrent).GetHalfSize()))
-            {
-                //(*current).vel = glm::vec3(0);
-
-                // Change visual based on collision 
-                glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-                SetColor(shader, color);
-
-                bool adjustOnX = (*current).xIndex == 0; //(*current).pushDir != Cell::XAxis;
-
-                // Check if solid cell 
-                if (current->isSolid)
-                {
-                    glm::vec2 nextPos =
-                        CorrectPosIfColliding(
-                            glm::vec2(x * trueCellSize, y * trueCellSize),
-                            glm::vec2(1.0f) * trueCellSize,
-                            *particleCurrent->pos,
-                            glm::vec2(1.0f) * particleCurrent->GetHalfSize(),
-                            adjustOnX);
-
-                    // Set new position 
-                    *particleCurrent->pos = glm::vec3(nextPos, 0.0f);
-
-                    // Correct velocity 
-                    if (adjustOnX)
-                    {
-                        particleCurrent->SetVel(glm::vec3(0.0f, particleCurrent->vel.y, 0.0f));
-                    }
-                    else
-                    {
-                        particleCurrent->SetVel(glm::vec3(particleCurrent->vel.x, 0.0f, 0.0f));
-
-                    }
-                }
-
-                break;
-            }
-        }
-        */
-
-
         // Render Grid 
         glm::mat4 mvp = proj * view * model;
         shader.Bind();
@@ -219,64 +119,6 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         shader.SetUniformMat4f("u_MVP", mvp);
         renderer.Draw(va, ib, shader);
     }
-    /*
-    for (unsigned int x = 0; x < GRIDSIZECOUNT; x++)
-    {
-        for (unsigned int y = 0; y < GRIDSIZECOUNT; y++)
-        {
-            // Change cell color based on purpose 
-            if ((x == 0 || x == GRIDSIZECOUNT - 1) || (y == 0 || y == GRIDSIZECOUNT - 1))
-            {
-                SetColor(shader, SOLIDCELLCOLOR);
-            }
-            else
-            {
-                SetColor(shader, FLUIDCELLCOLOR);
-            }
-
-           
-
-            // Get the center of a cell by taking into account
-            // size and borders 
-            glm::vec3 center = glm::vec3
-            (
-                x * trueCellSize + (trueCellSize / 2.0f),
-                y * trueCellSize + (trueCellSize / 2.0f),
-                0.0f
-            );
-
-            // Move 
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), center);
-            // Scale 
-            model = glm::scale(model, glm::vec3(CELLVISUALSCALAR, CELLVISUALSCALAR, CELLVISUALSCALAR));
-            
-
-
-
-            // Go through to see if colliding
-            for (unsigned int i = 0; i < 20; i++)
-            {
-                Particle* current = fluid.GetParticle(i);
-                if (IsIntersectingRect(glm::vec2(x * trueCellSize, y * trueCellSize), glm::vec2(1.0f) * trueCellSize, *(*current).pos, glm::vec2(1.0f) * (*current).GetHalfSize()))
-                {
-                    //(*current).vel = glm::vec3(0);
-
-                    // Change visual based on collision 
-                    glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-                    SetColor(shader, color);
-                    break;
-                }
-            }
-            
-
-            glm::mat4 mvp = proj * view * model;
-            shader.Bind();
-
-            shader.SetUniformMat4f("u_MVP", mvp);
-            renderer.Draw(va, ib, shader);
-        }
-    }
-    */
 }
 
 int main(void)
@@ -285,7 +127,7 @@ int main(void)
     const int WIDTH = 960;
     const int HEIGHT = 540;
 
-    const int PARTICLECOUNT = 500;
+    const int PARTICLECOUNT = 1000;
     const float STANDARDSIZE = 10.0f;
 
     const int CELLWALLTHICKNESS = 2;
@@ -486,7 +328,7 @@ int main(void)
             ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
             #pragma endregion
 
-
+            
             fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, CELLWALLTHICKNESS);
             fluid.SimulateFlip(TIMESTEP);
 
