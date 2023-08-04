@@ -137,6 +137,11 @@ Fluid::~Fluid()
 	//delete velField;
 }
 
+void Fluid::SetGravity(float g)
+{
+	gravity = g;
+}
+
 void Fluid::SetParticlePosition(unsigned int index, glm::vec3 pos)
 {
 	positions[index] = pos;
@@ -244,6 +249,34 @@ std::vector<Cell> Fluid::GetCells()
 	return cells;
 }
 
+void Fluid::AddParticleToCell(Particle* particle)
+{
+	// Particle update parent 
+
+	Cell* cell = PosToCell(*particle->pos, cellSize);
+	if (cell == nullptr)
+	{
+		// Particle might have been pushed out by user 
+		particle->vel = glm::vec3(0);
+		return;
+	}
+
+	if (!cell->ContainsParticle(particle))
+	{
+		// FIND OLD CELL BASED ON X AND Y INDEX 
+		Cell* oldCell = PosToCell((cellSize + 0.5f) * particle->parentIndex, cellSize);
+
+		// ADD CURRENT PARTICLE TO NEW CELL PARENT 
+		cell->AddParticle(particle);
+
+		if (oldCell != nullptr)
+		{
+			// REMOVE CURRENT PARTICLE FROM THAT CELLS LIST 
+			oldCell->RemoveParticle(particle);
+		}
+	}
+}
+
 /// <summary>
 /// Used to make sure that the particle is within the bounds 
 /// of the grid and that there is no overlap for the particles 
@@ -295,37 +328,37 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 
 
 	// Particle update parent 
-
-	Cell* cell = PosToCell(*particle->pos, trueCellSize);
-	if (cell == nullptr)
-	{
-		// Particle might have been pushed out by user 
-		particle->vel = glm::vec3(0);
-		return;
-	}
-
-	if (!cell->ContainsParticle(particle))
-	{
-		// FIND OLD CELL BASED ON X AND Y INDEX 
-		Cell* oldCell = PosToCell((cellSize + 0.5f) * particle->parentIndex, cellSize);
-
-		// ADD CURRENT PARTICLE TO NEW CELL PARENT 
-		cell->AddParticle(particle);
-
-		if (oldCell != nullptr)
-		{
-			// REMOVE CURRENT PARTICLE FROM THAT CELLS LIST 
-			oldCell->RemoveParticle(particle);
-		}
-	}
+	AddParticleToCell(particle);
 }
 
 /// <summary>
 /// Move the particles based on their velocity
 /// Also makes sure that particles stay within bounds 
 /// </summary>
-void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness, glm::vec3 mousePos, const float& MOUSERADIUS)
+void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness, glm::vec3 mousePos, const float& MOUSERADIUS, int paintMode, float particleSize)
 {
+	// Spawn particles 
+	if (paintMode == 1)
+	{
+		particles.resize(particles.size() + 1);
+
+		//std::cout << "Spawn Particles" << std::endl;
+		glm::vec3 nextPos = glm::vec3(((double)rand() / (RAND_MAX)) * MOUSERADIUS, ((double)rand() / (RAND_MAX)) * MOUSERADIUS, 0);
+		positions.push_back(nextPos);
+
+		int index = particles.size() - 1;
+		Particle* particle = new Particle(index, &positions[positions.size() - 1], glm::vec3(0), particleSize / 2.0f);
+		//particles.push_back(*particle);
+
+		particles[particles.size() - 1] = *particle;
+		particle->SetVel(glm::vec3(0));
+
+		particleEntity.push_back(*(new Entity(nextPos, particleSize)));
+
+		AddParticleToCell(particle);
+	}
+	
+
 	for (unsigned int i = 0; i < particles.size(); i++)
 	{
 		Particle *current = &particles[i];
@@ -343,10 +376,21 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 		// Keep out of mouse radius 
 		if (glm::distance(*current->pos, mousePos) < MOUSERADIUS)
 		{
-			glm::vec3 dir = *current->pos - mousePos;
-			dir /= glm::length(dir);
+			switch (paintMode)
+			{
+			case 0: // Nothgin
+				break;
+			case 1: // Spawn Particles 
+				break;
+			case 2: // Remove Particles 
+				break;
+			default: // Seperate from cursor 
+				glm::vec3 dir = *current->pos - mousePos;
+				dir /= glm::length(dir);
 
-			*current->pos = mousePos + (dir * MOUSERADIUS);
+				*current->pos = mousePos + (dir * MOUSERADIUS);
+				break;
+			}
 		}
 	}
 
@@ -372,15 +416,16 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 				Particle* childA = cell->GetParticle(a);
 
 				// Safety 
-				if (childA == nullptr)
+				if (childA == nullptr || childA->index > particles.size())
 					continue;
+
 
 				for (unsigned int b = 0; b < particleCount; b++)
 				{
 					Particle* childB = cell->GetParticle(b);
 
 					// Safety 
-					if (childB == nullptr)
+					if (childB == nullptr || childA == childB)
 						continue;
 
 					// Find center and split both particles
@@ -419,6 +464,8 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 			}
 		}
 	}
+
+
 }
 
 /// <summary>
@@ -558,7 +605,7 @@ void Fluid::TransferToVelField(std::vector<Cell> *nextValues)
 /// <summary>
 /// Make the grid have an equal amout of fluid inflow and outflow 
 /// </summary>
-void Fluid::MakeIncompressible(std::vector<Cell>* nextValues, int iterations, float overrelaxation)
+void Fluid::MakeIncompressible(std::vector<Cell>* nextValues, int iterations, float overrelaxation, float densityMultipier)
 {
 	overrelaxation = glm::clamp(overrelaxation, 1.0f, 2.0f);
 
@@ -606,7 +653,7 @@ void Fluid::MakeIncompressible(std::vector<Cell>* nextValues, int iterations, fl
 			}
 
 			divergence *= overrelaxation;
-			divergence -= 1.0f * (p - cell.averageP);
+			divergence -= densityMultipier * (p - cell.averageP);
 
 			// Apply incompressibility 
 			if (cell.q1 != nullptr)
@@ -704,7 +751,7 @@ void Fluid::AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep)
 	cells = *nextValues;
 }
 
-void Fluid::SimulateFlip(float timeStep)
+void Fluid::SimulateFlip(float timeStep, int iterations, float overrelaxation, float densityMultiplier)
 {
 	// Simulate the made FLIP calculations 
 	std::vector<Cell> nextValues(cells);
@@ -746,6 +793,6 @@ void Fluid::SimulateFlip(float timeStep)
 
 	// Run each step in Flip 
 	TransferToVelField(&nextValues);
-	MakeIncompressible(&nextValues, 7, 1.0f);
+	MakeIncompressible(&nextValues, iterations, overrelaxation, densityMultiplier);
 	AddChangeToParticles(&nextValues, timeStep);
 }

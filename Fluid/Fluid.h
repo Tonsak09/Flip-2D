@@ -270,8 +270,10 @@ private:
 
 	glm::vec2 GetCellVel(Cell cell);
 
+	void AddParticleToCell(Particle* particle);
+
 	void TransferToVelField(std::vector<Cell> *nextValues);
-	void MakeIncompressible(std::vector<Cell>* nextValues, int iterations, float overrelaxation);
+	void MakeIncompressible(std::vector<Cell>* nextValues, int iterations, float overrelaxation, float densityMultipier);
 	void AddChangeToParticles(std::vector<Cell>* nextValues, float timeStep);
 
 
@@ -285,6 +287,7 @@ public:
 	Fluid(float _gravity, glm::vec3 startVel, float _cellSize, int _sideLength, int particleCount, float particleSize);
 	~Fluid();
 
+	void SetGravity(float g);
 	void SetParticlePosition(unsigned int index, glm::vec3 pos);
 	void CorrectParticlePos(Particle* particle, float trueCellSize, int cellWallThickness);
 
@@ -294,8 +297,8 @@ public:
 
 	Cell* PosToCell(glm::vec2 pos, float trueCellSize);
 
-	void SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness, glm::vec3 mousePos, const float& MOUSERADIUS);
-	void SimulateFlip(float timeStep);
+	void SimulateParticles(float timeStep, int maxParticleChecks, int cellWallThickness, glm::vec3 mousePos, const float& MOUSERADIUS, int paintMode, float particleSize);
+	void SimulateFlip(float timeStep, int iterations, float overrelaxation, float densityMultiplier);
 
 	glm::vec3 GetCellPos(int xIndex, int yIndex);
 	std::vector<Cell> GetCells();

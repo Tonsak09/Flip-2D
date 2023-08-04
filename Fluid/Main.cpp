@@ -55,11 +55,10 @@ void PrintVec2(glm::vec2 vector)
     std::cout << vector.x << ", " << vector.y << std::endl;
 }
 
-void CurosorPositionCallback(GLFWwindow* window, double xPos, double yPos)
+void CursorPositionCallback(GLFWwindow* window, double xPos, double yPos)
 {
     //PrintVec2(glm::vec2(xPos, yPos));
 }
-
 /// <summary>
 /// Logic that applies to each particle 
 /// </summary>
@@ -154,7 +153,7 @@ int main(void)
     const int HEIGHT = 540;
 
     // Particle
-    const int PARTICLECOUNT = 1000;
+    const int PARTICLECOUNT = 500;
     const float STANDARDSIZE = 18.0f; // Typically 10 
 
     // Cell Details 
@@ -166,7 +165,7 @@ int main(void)
 
     // Physics
     const float TIMESTEP = 0.03f;
-    const float GRAVITY = -50.0f;
+    const float STARTGRAVITY = -50.0f;
     const int MAXPARTICLECHECKS = 1;
 
     // Spawning 
@@ -221,13 +220,13 @@ int main(void)
 
 
     // Set up mouse callback 
-    glfwSetCursorPosCallback(window, CurosorPositionCallback);
+    glfwSetCursorPosCallback(window, CursorPositionCallback);
 
     #pragma endregion
 
     #pragma region Rendering&Entity
     
-    Fluid fluid(GRAVITY, glm::vec3(0.0f, 20.0f, 0.0f), CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
+    Fluid fluid(STARTGRAVITY, glm::vec3(0.0f, 20.0f, 0.0f), CELLSIZE, GRIDSIZECOUNT, PARTICLECOUNT, STANDARDSIZE);
 
     // Set starting positions 
     for (unsigned int i = 0; i < PARTICLECOUNT; i++)
@@ -275,6 +274,8 @@ int main(void)
 
     #pragma region Runtime Variables
 
+    glm::vec2 mousePosHold;
+
      // Visual 
     bool showParticles = true;
     bool showCellHasParticles = true;
@@ -293,6 +294,14 @@ int main(void)
 
     // Interaction 
     float mouseRadius = 40.0f;
+    float gravity = STARTGRAVITY;
+
+    bool isPaintbrush = false;
+
+
+    // Physics 
+    float overrelazation = 1.0f;
+    float densityMultiplier = 1.0f;
 
 
     #pragma endregion
@@ -363,10 +372,35 @@ int main(void)
             glfwGetCursorPos(window, &x, &y);
             glfwGetWindowSize(window, nullptr, &h);
 
-            glm::vec2 mousePos = glm::vec2(x, h - y);
+            // Left clicking 
+            int leftButtonState = glfwGetMouseButton(window, 0);
+            if (leftButtonState == 1)
+            {
+               /* glm::vec2 nextMouse = glm::vec2(x, h - y);
+                mousePosHold = nextMouse;*/
+            }
+
+            // Right clicking 
+            int rightButtonState = glfwGetMouseButton(window, 1);
+           /* if (rightButtonState == 1)
+            {
+                glm::vec2 nextMouse = glm::vec2(x, h - y);
+                mousePosHold = nextMouse;
+            }*/
+
+            glm::vec2 nextMouse = glm::vec2(x, h - y);
+            mousePosHold = nextMouse;
+
+            // Priority of left button (draw) 
+            int buttonState = (leftButtonState == 1) ?
+                1 : // Will spawn Particles 
+                (rightButtonState == 1) ? 
+                2 : // Will destroy Particles 
+                0;  // Will do Nothing 
+
 
             // Rendering the grid and its logic 
-            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, mouseRadius, commonCellColor, occupiedCellColor, mouseColor, proj, view, shader, renderer, va, ib, fluid, mousePos, showCellHasParticles);
+            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, mouseRadius, commonCellColor, occupiedCellColor, mouseColor, proj, view, shader, renderer, va, ib, fluid, mousePosHold, showCellHasParticles);
 
             // Rendering the particle
             SetColor(shader, particleColor);
@@ -405,6 +439,13 @@ int main(void)
 
                 ImGui::Text("Interaction");
                 ImGui::SliderFloat("Mouse Radius", &mouseRadius, 1.0f, 90.0f);
+                //ImGui::Checkbox("Is Paintbrush", &isPaintbrush);
+
+                ImGui::Text("Physics");
+                ImGui::SliderFloat("Overrelaxation", &overrelazation, 1.0f, 2.0f);
+                ImGui::SliderFloat("Density Multipliers", &densityMultiplier, 1.0f, 2.0f);
+                ImGui::SliderFloat("Gravity", &gravity, -200.0f, 200.0f);
+                fluid.SetGravity(gravity);
 
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             } 
@@ -414,8 +455,13 @@ int main(void)
             #pragma endregion
 
             #pragma region FLIP Sim
-            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, CELLWALLTHICKNESS, glm::vec3(mousePos, 0.0f), mouseRadius);
-            fluid.SimulateFlip(TIMESTEP);
+            fluid.SimulateFlip(TIMESTEP, 7, overrelazation, densityMultiplier);
+
+
+            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, CELLWALLTHICKNESS, glm::vec3(mousePosHold, 0.0f), mouseRadius, 
+                isPaintbrush ? buttonState : -1,
+                STANDARDSIZE);
+
             #pragma endregion
 
             #pragma region Final GLFW
