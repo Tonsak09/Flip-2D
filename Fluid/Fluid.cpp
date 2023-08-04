@@ -389,6 +389,7 @@ void Fluid::SimulateParticles(float timeStep, int maxParticleChecks, int cellWal
 				dir /= glm::length(dir);
 
 				*current->pos = mousePos + (dir * MOUSERADIUS);
+				current->SetVel(glm::vec3(-current->vel.x / 2.0f, current->vel.y, 0.0f));
 				break;
 			}
 		}

@@ -81,7 +81,7 @@ void ParticleLogic(const int& PARTICLECOUNT, glm::mat4& proj, glm::mat4& view, F
 /// <summary>
 /// Logic that applies to each cell in the grid 
 /// </summary>
-void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, const int& PARTICLECOUNT, const float& MOUSERADIUS, glm::vec4& commonCellColor, glm::vec4& SOLIDCELLCOLOR, glm::vec4& mouseColor, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid, glm::vec2 mousePos, bool showCellHasParticles)
+void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& GRIDSIZECOUNT, const float& CELLVISUALSCALAR, const int& PARTICLECOUNT, const float& MOUSERADIUS, glm::vec4& commonCellColor, glm::vec4& SOLIDCELLCOLOR, glm::vec4& barrierColor, glm::mat4& proj, glm::mat4& view, Shader& shader, Renderer& renderer, VertexArray& va, IndexBuffer& ib, Fluid& fluid, glm::vec2 mousePos, bool showCellHasParticles, float cellWallThickness)
 {
     std::vector<Cell> cells = fluid.GetCells();
 
@@ -97,6 +97,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         int x = (*current).xIndex;
         int y = (*current).yIndex;
 
+       
 
         if (showCellHasParticles)
         {
@@ -106,18 +107,38 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
             }
             else
             {
-                SetColor(shader, commonCellColor);
+
+                if ((current->xIndex < cellWallThickness) || (current->xIndex + cellWallThickness >= GRIDSIZECOUNT) || 
+                    (current->yIndex < cellWallThickness) || (current->yIndex + cellWallThickness >= GRIDSIZECOUNT))
+                {
+                    // Cell wall
+                    SetColor(shader, barrierColor);
+                }
+                else
+                {
+                    SetColor(shader, commonCellColor);
+                }
             }
         }
         else
         {
-            SetColor(shader, commonCellColor);
+
+            if ((current->xIndex < cellWallThickness) || (current->xIndex + cellWallThickness >= GRIDSIZECOUNT) ||
+                (current->yIndex < cellWallThickness) || (current->yIndex + cellWallThickness >= GRIDSIZECOUNT))
+            {
+                // Cell wall
+                SetColor(shader, barrierColor);
+            }
+            else
+            {
+                SetColor(shader, commonCellColor);
+            }
         }
 
         // Show mouse radius 
         if (glm::distance(fluid.GetCellPos(current->xIndex, current->yIndex), glm::vec3(mousePos, 0.0f)) <= MOUSERADIUS)
         {
-            SetColor(shader, mouseColor);
+            SetColor(shader, barrierColor);
         }
         
 
@@ -149,8 +170,8 @@ int main(void)
     #pragma region Intialize 
 
     // Start screen size  
-    const int WIDTH = 960;
-    const int HEIGHT = 540;
+    const int WIDTH = 1200;
+    const int HEIGHT = 800;
 
     // Particle
     const int PARTICLECOUNT = 500;
@@ -158,7 +179,7 @@ int main(void)
 
     // Cell Details 
     const int CELLWALLTHICKNESS = 2;
-    const int GRIDSIZECOUNT = 20;
+    const int GRIDSIZECOUNT = 30;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 1.0f;
@@ -283,24 +304,25 @@ int main(void)
 
     glm::vec4 commonCellColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
     glm::vec4 occupiedCellColor = glm::vec4(0.5f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 mouseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+    glm::vec4 barrierColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
     glm::vec4 particleColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     float commonCellColorArr[4] = {0.2f, 0.2f, 0.2f, 1};
     float occupiedCellColorArr[4] = {0.5f, 0.0f, 0.0f, 1};
-    float mouseColorArr[4] = {0, 0, 1, 1};
+    float barrierColorArr[4] = {0, 0, 1, 1};
     float particleColorArr[4] = {1.0f, 0, 0, 1};
 
 
     // Interaction 
     float mouseRadius = 40.0f;
     float gravity = STARTGRAVITY;
+    int cellWallThickness = CELLWALLTHICKNESS;
 
     bool isPaintbrush = false;
 
 
     // Physics 
-    float overrelazation = 1.0f;
+    float overrelazation = 1.5f;
     float densityMultiplier = 1.0f;
 
 
@@ -400,7 +422,7 @@ int main(void)
 
 
             // Rendering the grid and its logic 
-            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, mouseRadius, commonCellColor, occupiedCellColor, mouseColor, proj, view, shader, renderer, va, ib, fluid, mousePosHold, showCellHasParticles);
+            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, mouseRadius, commonCellColor, occupiedCellColor, barrierColor, proj, view, shader, renderer, va, ib, fluid, mousePosHold, showCellHasParticles, cellWallThickness);
 
             // Rendering the particle
             SetColor(shader, particleColor);
@@ -425,8 +447,8 @@ int main(void)
 
                 ImGui::Text("Color");
 
-                ImGui::ColorEdit4("Mouse Color", mouseColorArr);
-                mouseColor = glm::vec4(mouseColorArr[0], mouseColorArr[1], mouseColorArr[2], mouseColorArr[3]);
+                ImGui::ColorEdit4("Mouse Color", barrierColorArr);
+                barrierColor = glm::vec4(barrierColorArr[0], barrierColorArr[1], barrierColorArr[2], barrierColorArr[3]);
 
                 ImGui::ColorEdit4("Cell Default Color", commonCellColorArr);
                 commonCellColor = glm::vec4(commonCellColorArr[0], commonCellColorArr[1], commonCellColorArr[2], commonCellColorArr[3]);
@@ -439,11 +461,12 @@ int main(void)
 
                 ImGui::Text("Interaction");
                 ImGui::SliderFloat("Mouse Radius", &mouseRadius, 1.0f, 90.0f);
+                ImGui::SliderInt("Cell Wall Thickness", &cellWallThickness, 1.0f, 10.0f);
                 //ImGui::Checkbox("Is Paintbrush", &isPaintbrush);
 
                 ImGui::Text("Physics");
-                ImGui::SliderFloat("Overrelaxation", &overrelazation, 1.0f, 2.0f);
-                ImGui::SliderFloat("Density Multipliers", &densityMultiplier, 1.0f, 2.0f);
+                //ImGui::SliderFloat("Overrelaxation", &overrelazation, 1.0f, 2.0f);
+                //ImGui::SliderFloat("Density Multipliers", &densityMultiplier, 1.0f, 2.0f);
                 ImGui::SliderFloat("Gravity", &gravity, -200.0f, 200.0f);
                 fluid.SetGravity(gravity);
 
@@ -458,7 +481,7 @@ int main(void)
             fluid.SimulateFlip(TIMESTEP, 7, overrelazation, densityMultiplier);
 
 
-            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, CELLWALLTHICKNESS, glm::vec3(mousePosHold, 0.0f), mouseRadius, 
+            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, cellWallThickness, glm::vec3(mousePosHold, 0.0f), mouseRadius,
                 isPaintbrush ? buttonState : -1,
                 STANDARDSIZE);
 
