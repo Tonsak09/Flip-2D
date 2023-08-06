@@ -422,7 +422,7 @@ int main(void)
 
 
             // Rendering the grid and its logic 
-            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, mouseRadius, commonCellColor, occupiedCellColor, barrierColor, proj, view, shader, renderer, va, ib, fluid, mousePosHold, showCellHasParticles, cellWallThickness);
+            GridLogic(CELLSIZE, CELLSPACINGSIZE, GRIDSIZECOUNT, CELLVISUALSCALAR, PARTICLECOUNT, mouseRadius, commonCellColor, occupiedCellColor, barrierColor, proj, view, shader, renderer, va, ib, fluid, mousePosHold, showCellHasParticles, cellWallThickness + 1);
 
             // Rendering the particle
             SetColor(shader, particleColor);
@@ -481,7 +481,7 @@ int main(void)
             fluid.SimulateFlip(TIMESTEP, 7, overrelazation, densityMultiplier);
 
 
-            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, cellWallThickness, glm::vec3(mousePosHold, 0.0f), mouseRadius, 
+            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, cellWallThickness + 1, glm::vec3(mousePosHold, 0.0f), mouseRadius, 
                 isPaintbrush ? buttonState : -1,
                 STANDARDSIZE);
 
