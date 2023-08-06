@@ -97,7 +97,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         int x = (*current).xIndex;
         int y = (*current).yIndex;
 
-       
+
 
         if (showCellHasParticles)
         {
@@ -108,7 +108,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
             else
             {
 
-                if ((current->xIndex < cellWallThickness) || (current->xIndex + cellWallThickness >= GRIDSIZECOUNT) || 
+                if ((current->xIndex < cellWallThickness) || (current->xIndex + cellWallThickness >= GRIDSIZECOUNT) ||
                     (current->yIndex < cellWallThickness) || (current->yIndex + cellWallThickness >= GRIDSIZECOUNT))
                 {
                     // Cell wall
@@ -140,7 +140,7 @@ void GridLogic(const float& CELLSIZE, const float& CELLSPACINGSIZE, const int& G
         {
             SetColor(shader, barrierColor);
         }
-        
+
 
         // Get the center of a cell by taking into account
             // size and borders 
@@ -171,15 +171,14 @@ int main(void)
 
     // Start screen size  
     const int WIDTH = 1200;
-    const int HEIGHT = 800;
+    const int HEIGHT = 600;
 
     // Particle
     const int PARTICLECOUNT = 500;
     const float STANDARDSIZE = 18.0f; // Typically 10 
 
     // Cell Details 
-    const int CELLWALLTHICKNESS = 2;
-    const int GRIDSIZECOUNT = 30;
+    const int GRIDSIZECOUNT = 22;
     const float CELLSIZE = 20.0f;
     const float CELLSPACINGSIZE = 0.0f;
     const float CELLVISUALSCALAR = 1.0f;
@@ -316,13 +315,14 @@ int main(void)
     // Interaction 
     float mouseRadius = 40.0f;
     float gravity = STARTGRAVITY;
-    int cellWallThickness = CELLWALLTHICKNESS;
+    int cellWallThickness = 2;
+
 
     bool isPaintbrush = false;
 
 
     // Physics 
-    float overrelazation = 1.5f;
+    float overrelazation = 1.0f;
     float densityMultiplier = 1.0f;
 
 
@@ -447,7 +447,7 @@ int main(void)
 
                 ImGui::Text("Color");
 
-                ImGui::ColorEdit4("Mouse Color", barrierColorArr);
+                ImGui::ColorEdit4("Barrier Color", barrierColorArr);
                 barrierColor = glm::vec4(barrierColorArr[0], barrierColorArr[1], barrierColorArr[2], barrierColorArr[3]);
 
                 ImGui::ColorEdit4("Cell Default Color", commonCellColorArr);
@@ -461,7 +461,7 @@ int main(void)
 
                 ImGui::Text("Interaction");
                 ImGui::SliderFloat("Mouse Radius", &mouseRadius, 1.0f, 90.0f);
-                ImGui::SliderInt("Cell Wall Thickness", &cellWallThickness, 1.0f, 10.0f);
+                ImGui::SliderInt("Cell Wall Thickness", &cellWallThickness, 1, 8);
                 //ImGui::Checkbox("Is Paintbrush", &isPaintbrush);
 
                 ImGui::Text("Physics");
@@ -481,7 +481,7 @@ int main(void)
             fluid.SimulateFlip(TIMESTEP, 7, overrelazation, densityMultiplier);
 
 
-            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, cellWallThickness, glm::vec3(mousePosHold, 0.0f), mouseRadius,
+            fluid.SimulateParticles(TIMESTEP, MAXPARTICLECHECKS, cellWallThickness, glm::vec3(mousePosHold, 0.0f), mouseRadius, 
                 isPaintbrush ? buttonState : -1,
                 STANDARDSIZE);
 

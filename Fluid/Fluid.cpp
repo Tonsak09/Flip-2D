@@ -316,7 +316,7 @@ void Fluid::CorrectParticlePos(Particle* particle, float trueCellSize, int cellW
 	if (particle->pos->y <= axisMin)
 	{
 		*particle->pos = glm::vec3(particle->pos->x, axisMin + particle->GetHalfSize(), 0.0f);
-		particle->SetVel(glm::vec3(particle->vel.x, -particle->vel.y / 2.0f, 0.0f));
+		particle->SetVel(glm::vec3(particle->vel.x / 2.0f, -particle->vel.y / 4.0f, 0.0f));
 	}
 	else if (particle->pos->y >= axisLimt)
 	{
